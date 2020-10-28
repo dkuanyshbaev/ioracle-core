@@ -1,3 +1,4 @@
+use std::io::prelude::*;
 use std::io::{BufRead, BufReader};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::thread;
@@ -55,18 +56,49 @@ fn main() {
     loop {
         // the_factory.i_oracle = the_factory.i_oracle.step();
 
+        println!("loop");
         for stream in listener.incoming() {
+            println!("stream");
             match stream {
-                Ok(stream) => {
+                Ok(mut stream) => {
                     // thread::spawn(|| handle_client(stream));
-                    let stream = BufReader::new(stream);
-                    for line in stream.lines() {
+                    let stream_reader = BufReader::new(stream);
+                    for line in stream_reader.lines() {
+                        println!("line");
                         let l = line.unwrap();
                         println!("{}", l);
 
                         if l == "read" {
-                            for i in 1..4 {
+                            for i in 0..3 {
                                 a = a.step();
+
+                                match a {
+                                    IOracleWrapper::Resting(_) => {
+                                        println!("resting now");
+                                        thread::sleep(Duration::from_secs(4));
+                                    }
+                                    IOracleWrapper::Reading(_) => {
+                                        println!("readin now");
+                                        thread::sleep(Duration::from_secs(4));
+                                    }
+                                    IOracleWrapper::Displaying(_) => {
+                                        println!("displaying now");
+                                        thread::sleep(Duration::from_secs(4));
+
+                                        match UnixStream::connect("/tmp/ioracle.out") {
+                                            Ok(mut st) => {
+                                                match st.write_all(b"100100") {
+                                                    Ok(_) => {
+                                                        println!("result is send");
+                                                    }
+                                                    Err(e) => println!("{:?}", e),
+                                                };
+                                            }
+                                            Err(e) => println!("{:?}", e),
+                                        };
+                                    }
+                                };
+
                                 thread::sleep(Duration::from_secs(1));
                             }
                         }
