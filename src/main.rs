@@ -1,45 +1,33 @@
 mod machine;
 mod wires;
 
-use rand::distributions::{Distribution, Uniform};
-// use serialport::prelude::*;
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
-use std::thread;
 use std::time::Duration;
+use std::{process, thread};
 
-// const LEDS_IN_LINE: i32 = 144;
-const IORACLE_GATE: &str = "/tmp/ioracle.gate";
+const IORACLE_IN: &str = "/tmp/ioracle.in";
 const IORACLE_OUT: &str = "/tmp/ioracle.out";
 
 fn main() {
-    let socket = Path::new(IORACLE_GATE);
+    let socket = Path::new(IORACLE_IN);
     if socket.exists() {
-        if let Err(error) = std::fs::remove_file(IORACLE_GATE) {
+        if let Err(error) = std::fs::remove_file(IORACLE_IN) {
             println!("{}", error);
-            std::process::exit(1);
+            process::exit(1);
         };
     }
 
-    let listener = UnixListener::bind(IORACLE_GATE).unwrap_or_else(|error| {
+    let listener = UnixListener::bind(IORACLE_IN).unwrap_or_else(|error| {
         println!("{}", error);
-        std::process::exit(1);
+        process::exit(1);
     });
 
-    // let serial_port_settings = SerialPortSettings {
-    //     baud_rate: 9600,
-    //     data_bits: DataBits::Eight,
-    //     flow_control: FlowControl::None,
-    //     parity: Parity::None,
-    //     stop_bits: StopBits::One,
-    //     timeout: Duration::from_secs(1),
-    // };
-
-    let mut state = machine::IOracleWrapper::Resting(machine::IOracle::new(0));
+    let mut ioracle = machine::IOracleWrapper::Resting(machine::IOracle::new());
 
     loop {
-        match state {
+        match ioracle {
             machine::IOracleWrapper::Resting(_) => {
                 if let Ok(_) = listener.set_nonblocking(true) {
                     for stream in listener.incoming() {
@@ -49,80 +37,41 @@ fn main() {
                                 let stream_reader = BufReader::new(stream);
                                 for line in stream_reader.lines() {
                                     // println!("new line");
-                                    let l = line.unwrap();
-                                    // println!("{}", l);
-
-                                    if l == "read" {
-                                        state = state.step();
-                                        break;
-                                    }
+                                    if let Ok(line) = line {
+                                        if line == "read" {
+                                            ioracle = ioracle.step();
+                                            break;
+                                        }
+                                    };
                                 }
                             }
                             Err(_) => {
-                                println!("LED update");
-                                // --------------------------------------------------
-                                // let mut serial_value;
-                                // if let Ok(mut port) =
-                                //     serialport::open_with_settings("/dev/ttyACM0",
-                                //     &serial_port_settings)
-                                // {
-                                //     let mut serial_buf: Vec<u8> = vec![0; 512];
-                                //
-                                //     match port.read(serial_buf.as_mut_slice()) {
-                                //         Ok(t) => {
-                                //             serial_value = wires::get_val(&serial_buf[..t]);
-                                //         }
-                                //         Err(e) => eprintln!("{:?}", e),
-                                //     }
-                                // }
-                                // --------------------------------------------------
+                                // println!("LED update");
                                 if let Some(mut controller) = wires::build_controller() {
-                                    let mut rng1 = rand::thread_rng();
-                                    let mut rng2 = rand::thread_rng();
-
-                                    let yao = controller.leds_mut(0);
-                                    let red_range = Uniform::from(54..255);
-
-                                    let mut k;
-                                    for i in 0..yao.len() - 1 {
-                                        k = i * 9;
-                                        // !!!???
-                                        if k > yao.len() - 9 {
-                                            k = yao.len() - 9;
-                                        }
-                                        for j in k..k + 9 {
-                                            let r = red_range.sample(&mut rng1);
-                                            let green_range = Uniform::from(0..r / 4);
-                                            let g = green_range.sample(&mut rng2);
-                                            yao[j as usize] = [0, g, r, 0];
-                                        }
-                                    }
-
-                                    std::thread::sleep(Duration::from_millis(70));
-
-                                    if let Err(e) = controller.render() {
-                                        println!("Fire error: {:?}", e);
-                                    }
+                                    wires::render_resting(&mut controller);
                                 };
-                                // --------------------------------------------------
                             }
                         }
                         break;
                     }
                 }
             }
-            machine::IOracleWrapper::Reading(_) => {
+            // machine::IOracleWrapper::Reading(_) => {
+            machine::IOracleWrapper::Reading(ref mut v) => {
+                println!("---------------{:?}", v.hexagram);
                 if let Some(mut controller) = wires::build_controller() {
                     wires::reading(&mut controller);
                 }
-                state = state.step();
+                v.hexagram = "111111".to_string();
+                ioracle = ioracle.step();
             }
-            machine::IOracleWrapper::Displaying(_) => {
+            machine::IOracleWrapper::Displaying(ref v) => {
                 println!("displaying now");
+                println!("---------------{:?}", v.hexagram);
 
                 match UnixStream::connect(IORACLE_OUT) {
-                    Ok(mut st) => {
-                        match st.write_all(b"100100") {
+                    Ok(mut stream) => {
+                        match stream.write_all(b"100100") {
                             Ok(_) => {
                                 println!("result is send");
                             }
@@ -131,10 +80,9 @@ fn main() {
                     }
                     Err(e) => println!("{:?}", e),
                 };
-
                 thread::sleep(Duration::from_secs(8));
 
-                state = state.step();
+                ioracle = ioracle.step();
             }
         };
     }

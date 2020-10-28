@@ -1,6 +1,6 @@
 // This is our state machine.
 pub struct IOracle<S> {
-    shared_value: usize,
+    pub hexagram: String,
     state: S,
 }
 
@@ -11,10 +11,10 @@ pub struct Displaying;
 
 // Initial state
 impl IOracle<Resting> {
-    pub fn new(shared_value: usize) -> Self {
+    pub fn new() -> Self {
         println!("start in resting");
         IOracle {
-            shared_value: shared_value,
+            hexagram: "000000".to_string(),
             state: Resting,
         }
     }
@@ -25,7 +25,7 @@ impl From<IOracle<Resting>> for IOracle<Reading> {
     fn from(val: IOracle<Resting>) -> IOracle<Reading> {
         println!("resting -> reading");
         IOracle {
-            shared_value: val.shared_value,
+            hexagram: val.hexagram,
             state: Reading,
         }
     }
@@ -35,7 +35,7 @@ impl From<IOracle<Reading>> for IOracle<Displaying> {
     fn from(val: IOracle<Reading>) -> IOracle<Displaying> {
         println!("reading -> displaying");
         IOracle {
-            shared_value: val.shared_value,
+            hexagram: val.hexagram,
             state: Displaying,
         }
     }
@@ -45,7 +45,7 @@ impl From<IOracle<Displaying>> for IOracle<Resting> {
     fn from(val: IOracle<Displaying>) -> IOracle<Resting> {
         println!("displaying -> resting");
         IOracle {
-            shared_value: val.shared_value,
+            hexagram: val.hexagram,
             state: Resting,
         }
     }

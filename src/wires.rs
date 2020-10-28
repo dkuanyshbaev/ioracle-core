@@ -1,4 +1,4 @@
-// use rand::distributions::{Distribution, Uniform};
+use rand::distributions::{Distribution, Uniform};
 // use rppal::gpio::Gpio;
 use rs_ws281x::{ChannelBuilder, Controller, ControllerBuilder, StripType};
 use serialport::prelude::*;
@@ -99,6 +99,35 @@ fn parse_colour(colour: &String) -> (u8, u8, u8) {
     }
 
     rgb
+}
+
+pub fn render_resting(controller: &mut Controller) {
+    let mut rng1 = rand::thread_rng();
+    let mut rng2 = rand::thread_rng();
+
+    let yao = controller.leds_mut(0);
+    let red_range = Uniform::from(54..255);
+
+    let mut k;
+    for i in 0..yao.len() - 1 {
+        k = i * 9;
+        // !!!???
+        if k > yao.len() - 9 {
+            k = yao.len() - 9;
+        }
+        for j in k..k + 9 {
+            let r = red_range.sample(&mut rng1);
+            let green_range = Uniform::from(0..r / 4);
+            let g = green_range.sample(&mut rng2);
+            yao[j as usize] = [0, g, r, 0];
+        }
+    }
+
+    std::thread::sleep(Duration::from_millis(70));
+
+    if let Err(e) = controller.render() {
+        println!("Fire error: {:?}", e);
+    }
 }
 
 pub fn reading(controller: &mut Controller) -> String {
