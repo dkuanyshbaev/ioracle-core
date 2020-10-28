@@ -9,6 +9,7 @@ pub struct Resting;
 pub struct Reading;
 pub struct Displaying;
 
+// Initial state
 impl IOracle<Resting> {
     pub fn new(shared_value: usize) -> Self {
         println!("start in resting");
@@ -50,14 +51,12 @@ impl From<IOracle<Displaying>> for IOracle<Resting> {
     }
 }
 
-// Here is we're building an enum so we can contain this state machine in a parent.
 pub enum IOracleWrapper {
     Resting(IOracle<Resting>),
     Reading(IOracle<Reading>),
     Displaying(IOracle<Displaying>),
 }
 
-// Defining a function which shifts the state along.
 impl IOracleWrapper {
     pub fn step(mut self) -> Self {
         self = match self {

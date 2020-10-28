@@ -1,5 +1,5 @@
-use rand::distributions::{Distribution, Uniform};
-use rppal::gpio::Gpio;
+// use rand::distributions::{Distribution, Uniform};
+// use rppal::gpio::Gpio;
 use rs_ws281x::{ChannelBuilder, Controller, ControllerBuilder, StripType};
 use serialport::prelude::*;
 use std::thread;
@@ -34,6 +34,130 @@ pub fn build_controller() -> Option<Controller> {
         Ok(controller) => Some(controller),
         Err(_) => None,
     }
+}
+
+pub fn render(l: u8, line_num: i32, controller: &mut Controller, colour: &String) {
+    match l {
+        1 => render_yin(line_num, controller, colour),
+        _ => render_yang(line_num, controller, colour),
+    }
+}
+
+pub fn render_yin(line_num: i32, controller: &mut Controller, colour: &String) {
+    let leds = controller.leds_mut(0);
+    let (a, b, c) = parse_colour(colour);
+
+    let part = LEDS_IN_LINE / 3;
+    let position = LEDS_IN_LINE * (line_num - 1);
+    for num in position..position + LEDS_IN_LINE {
+        if num > position + part && num < position + part * 2 {
+            leds[num as usize] = [0, 0, 0, 0];
+        } else {
+            // leds[num as usize] = [a, b, c, 0];
+            leds[num as usize] = [c, a, b, 0];
+        }
+    }
+
+    if let Err(e) = controller.render() {
+        println!("{:?}", e);
+    };
+}
+
+pub fn render_yang(line_num: i32, controller: &mut Controller, colour: &String) {
+    let leds = controller.leds_mut(0);
+    let (a, b, c) = parse_colour(colour);
+
+    let position = LEDS_IN_LINE * (line_num - 1);
+    for num in position..position + LEDS_IN_LINE {
+        // leds[num as usize] = [a, b, c, 0];
+        leds[num as usize] = [c, a, b, 0];
+    }
+
+    if let Err(e) = controller.render() {
+        println!("{:?}", e);
+    };
+}
+
+fn parse_colour(colour: &String) -> (u8, u8, u8) {
+    let mut str_buff = colour.clone();
+    let mut rgb = (255, 255, 255);
+
+    // colour string format:  "rgb(108, 73, 211)"
+    let mut str_buff: String = str_buff.drain(4..).collect();
+    str_buff.pop();
+    let str_parts = str_buff.split(", ");
+    let parts: Vec<&str> = str_parts.collect();
+
+    if let Ok(part) = parts[0].parse::<u8>() {
+        rgb.0 = part;
+    }
+    if let Ok(part) = parts[1].parse::<u8>() {
+        rgb.1 = part;
+    }
+    if let Ok(part) = parts[2].parse::<u8>() {
+        rgb.2 = part;
+    }
+
+    rgb
+}
+
+pub fn reading(controller: &mut Controller) -> String {
+    println!("New reading.");
+    let yao = controller.leds_mut(0);
+
+    for num in 0..LEDS_IN_LINE * 6 {
+        yao[num as usize] = [0, 0, 0, 0];
+    }
+
+    if let Err(e) = controller.render() {
+        println!("{:?}", e);
+    };
+
+    //---------------------------------------------------
+
+    let line1 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    println!("line1 = {}", line1);
+    render(line1, 6, controller, &"rgb(51, 0, 180)".to_string());
+    thread::sleep(Duration::from_secs(3));
+
+    let line2 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    println!("line2 = {}", line2);
+    render(line2, 1, controller, &"rgb(51, 0, 180)".to_string());
+    thread::sleep(Duration::from_secs(3));
+
+    let line3 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    println!("line3 = {}", line3);
+    render(line3, 2, controller, &"rgb(51, 0, 180)".to_string());
+    thread::sleep(Duration::from_secs(3));
+
+    // pub fn render_first(&self, settings: &Binding, controller: &mut Controller) {
+    // reaction
+    // get related lines
+    // get related trigram
+
+    let line4 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    println!("line4 = {}", line4);
+    render(line4, 3, controller, &"rgb(51, 0, 180)".to_string());
+    thread::sleep(Duration::from_secs(3));
+
+    let line5 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    println!("line5 = {}", line5);
+    render(line5, 4, controller, &"rgb(51, 0, 180)".to_string());
+    thread::sleep(Duration::from_secs(3));
+
+    let line6 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    println!("line6 = {}", line6);
+    render(line6, 5, controller, &"rgb(51, 0, 180)".to_string());
+    thread::sleep(Duration::from_secs(3));
+    //---------------------------------------------------
+
+    // reaction
+    // get related lines
+    // get related trigram
+
+    // reset pins
+    // return hex + rel
+    "101001".to_string()
 }
 
 pub fn read_the_pip(delta: u64) -> Vec<i32> {
@@ -132,69 +256,4 @@ pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
     } else {
         0
     }
-}
-
-pub fn render(l: u8, line_num: i32, controller: &mut Controller, colour: &String) {
-    match l {
-        1 => render_yin(line_num, controller, colour),
-        _ => render_yang(line_num, controller, colour),
-    }
-}
-
-pub fn render_yin(line_num: i32, controller: &mut Controller, colour: &String) {
-    let leds = controller.leds_mut(0);
-    let (a, b, c) = parse_colour(colour);
-
-    let part = LEDS_IN_LINE / 3;
-    let position = LEDS_IN_LINE * (line_num - 1);
-    for num in position..position + LEDS_IN_LINE {
-        if num > position + part && num < position + part * 2 {
-            leds[num as usize] = [0, 0, 0, 0];
-        } else {
-            // leds[num as usize] = [a, b, c, 0];
-            leds[num as usize] = [c, a, b, 0];
-        }
-    }
-
-    if let Err(e) = controller.render() {
-        println!("{:?}", e);
-    };
-}
-
-pub fn render_yang(line_num: i32, controller: &mut Controller, colour: &String) {
-    let leds = controller.leds_mut(0);
-    let (a, b, c) = parse_colour(colour);
-
-    let position = LEDS_IN_LINE * (line_num - 1);
-    for num in position..position + LEDS_IN_LINE {
-        // leds[num as usize] = [a, b, c, 0];
-        leds[num as usize] = [c, a, b, 0];
-    }
-
-    if let Err(e) = controller.render() {
-        println!("{:?}", e);
-    };
-}
-
-fn parse_colour(colour: &String) -> (u8, u8, u8) {
-    let mut str_buff = colour.clone();
-    let mut rgb = (255, 255, 255);
-
-    // colour string format:  "rgb(108, 73, 211)"
-    let mut str_buff: String = str_buff.drain(4..).collect();
-    str_buff.pop();
-    let str_parts = str_buff.split(", ");
-    let parts: Vec<&str> = str_parts.collect();
-
-    if let Ok(part) = parts[0].parse::<u8>() {
-        rgb.0 = part;
-    }
-    if let Ok(part) = parts[1].parse::<u8>() {
-        rgb.1 = part;
-    }
-    if let Ok(part) = parts[2].parse::<u8>() {
-        rgb.2 = part;
-    }
-
-    rgb
 }
