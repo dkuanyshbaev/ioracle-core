@@ -7,6 +7,15 @@ use std::{process, thread};
 
 const LEDS_IN_LINE: i32 = 144;
 
+const HEAVEN_COLOUR: &str = "rgb(224, 4, 235)";
+const CLOUD_COLOUR: &str = "rgb(255, 2, 14)";
+const SUN_COLOUR: &str = "rgb(255, 109, 0)";
+const WIND_COLOUR: &str = "rgb(121, 255, 0)";
+const THUNDER_COLOUR: &str = "rgb(255, 53, 6)";
+const WATER_COLOUR: &str = "rgb(38, 2, 255)";
+const MOUNTAIN_COLOUR: &str = "rgb(14, 255, 232)";
+const EARTH_COLOUR: &str = "rgb(0, 0, 0)";
+
 pub fn build_controller() -> Option<Controller> {
     match ControllerBuilder::new()
         .freq(800_000)
@@ -304,10 +313,12 @@ pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
     }
 }
 
-pub fn display(controller: &mut Controller, _hexagram: &String, _related: &String) {
-    let yao = controller.leds_mut(0);
-    let li = controller.leds_mut(1);
+// pub fn display(controller: &mut Controller, hexagram: &String, related: &String) {
+pub fn display(hexagram: &String, related: &String) {
     let start = SystemTime::now();
+    let first_color = get_trigram_colour(hexagram[0..3].to_string());
+    let second_colour = get_trigram_colour(hexagram[3..6].to_string());
+    let mut colour = "".to_string();
 
     loop {
         if let Ok(d) = start.elapsed() {
@@ -315,88 +326,109 @@ pub fn display(controller: &mut Controller, _hexagram: &String, _related: &Strin
                 break;
             };
         }
+        if let Some(mut controller) = build_controller() {
+            let yao = controller.leds_mut(0);
+            // let li = controller.leds_mut(1);
 
-        // for num in 0..yao.len() {
-        //     yao[num as usize] = [c, a, b, 0];
-        // }
+            // Yao
+            let s = 3..=5;
+            let mut i = 1;
+            for (x, y) in hexagram.chars().zip(related.chars()) {
+                if x.eq(&y) {
+                    let mut b = 0;
+                    if x.eq(&'1') {
+                        b = 1;
+                    }
 
-        // for num in 0..li.len() {
-        //     li[num as usize] = [c, a, b, 0];
-        // }
+                    if s.contains(&i) {
+                        colour = second_colour.clone();
+                    } else {
+                        colour = first_color.clone();
+                    }
 
-        if let Err(e) = controller.render() {
-            println!("{:?}", e);
-        };
+                    render(b, i, &mut controller, &colour);
+                } else {
+                    // render_changing(i, controller);
+
+                    // let position = LEDS_IN_LINE * (i - 1);
+                    // for num in position..position + LEDS_IN_LINE {
+                    //     // leds[num as usize] = [c, a, b, 0];
+                    //     yao[num as usize] = [0, 0, 0, 0];
+                    // }
+                }
+                i += 1;
+            }
+
+            // // Li
+            // for num in 0..li.len() {
+            //     li[num as usize] = [0, 0, 0, 0];
+            // }
+
+            if let Err(e) = controller.render() {
+                println!("{:?}", e);
+            };
+        }
     }
 }
 
 pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3: i32) {
-    let heaven_colour = "rgb(224, 4, 235)".to_string();
-    let cloud_colour = "rgb(255, 2, 14)".to_string();
-    let sun_colour = "rgb(255, 109, 0)".to_string();
-    let wind_colour = "rgb(121, 255, 0)".to_string();
-    let thunder_colour = "rgb(255, 53, 6)".to_string();
-    let water_colour = "rgb(38, 2, 255)".to_string();
-    let mountain_colour = "rgb(14, 255, 232)".to_string();
-    let earth_colour = "rgb(0, 0, 0)".to_string();
-
     match trigram.as_str() {
         // Heaven
         "111" => {
             pin_on(5);
-            render_yang(l1, controller, &heaven_colour);
-            render_yang(l2, controller, &heaven_colour);
-            render_yang(l3, controller, &heaven_colour);
+            render_yang(l1, controller, &HEAVEN_COLOUR.to_string());
+            render_yang(l2, controller, &HEAVEN_COLOUR.to_string());
+            render_yang(l3, controller, &HEAVEN_COLOUR.to_string());
         }
         // Cloud
         "110" => {
             pin_on(8);
-            render_yang(l1, controller, &cloud_colour);
-            render_yang(l2, controller, &cloud_colour);
-            render_yin(l3, controller, &cloud_colour);
+            render_yang(l1, controller, &CLOUD_COLOUR.to_string());
+            render_yang(l2, controller, &CLOUD_COLOUR.to_string());
+            render_yin(l3, controller, &CLOUD_COLOUR.to_string());
         }
         // Sun
         "101" => {
             shell_fire();
-            render_yang(l1, controller, &sun_colour);
-            render_yin(l2, controller, &sun_colour);
-            render_yang(l3, controller, &sun_colour);
+            render_yang(l1, controller, &SUN_COLOUR.to_string());
+            render_yin(l2, controller, &SUN_COLOUR.to_string());
+            render_yang(l3, controller, &SUN_COLOUR.to_string());
         }
         // Wind
         "011" => {
             pin_on(20);
-            render_yin(l1, controller, &wind_colour);
-            render_yang(l2, controller, &wind_colour);
-            render_yang(l3, controller, &wind_colour);
+            render_yin(l1, controller, &WIND_COLOUR.to_string());
+            render_yang(l2, controller, &WIND_COLOUR.to_string());
+            render_yang(l3, controller, &WIND_COLOUR.to_string());
         }
         // Thunder
         "100" => {
             play_sound("Thunder.wav".to_string());
-            render_yang(l1, controller, &thunder_colour);
-            render_yin(l2, controller, &thunder_colour);
-            render_yin(l3, controller, &thunder_colour);
+            render_yang(l1, controller, &THUNDER_COLOUR.to_string());
+            render_yin(l2, controller, &THUNDER_COLOUR.to_string());
+            render_yin(l3, controller, &THUNDER_COLOUR.to_string());
         }
         // Water
         "010" => {
             pin_on(6);
-            render_yin(l1, controller, &water_colour);
-            render_yang(l2, controller, &water_colour);
-            render_yin(l3, controller, &water_colour);
+            render_yin(l1, controller, &WATER_COLOUR.to_string());
+            render_yang(l2, controller, &WATER_COLOUR.to_string());
+            render_yin(l3, controller, &WATER_COLOUR.to_string());
         }
         // Mountain
         "001" => {
             pin_on(7);
             play_sound("EarthMountain.wav".to_string());
-            render_yin(l1, controller, &mountain_colour);
-            render_yin(l2, controller, &mountain_colour);
-            render_yang(l3, controller, &mountain_colour);
+            render_yin(l1, controller, &MOUNTAIN_COLOUR.to_string());
+            render_yin(l2, controller, &MOUNTAIN_COLOUR.to_string());
+            render_yang(l3, controller, &MOUNTAIN_COLOUR.to_string());
         }
         // Earth
         "000" => {
             play_sound("EarthMountain.wav".to_string());
-            render_yin(l1, controller, &earth_colour);
-            render_yin(l2, controller, &earth_colour);
-            render_yin(l3, controller, &earth_colour);
+            render_yin(l1, controller, &EARTH_COLOUR.to_string());
+            render_yin(l2, controller, &EARTH_COLOUR.to_string());
+            render_yin(l3, controller, &EARTH_COLOUR.to_string());
         }
         // Error
         _ => {}
@@ -516,4 +548,27 @@ pub fn get_related(h: &String, r: &String) -> String {
     }
 
     result
+}
+
+pub fn get_trigram_colour(t: String) -> String {
+    match t.as_str() {
+        // Heaven
+        "111" => HEAVEN_COLOUR.to_string(),
+        // Cloud
+        "110" => CLOUD_COLOUR.to_string(),
+        // Sun
+        "101" => SUN_COLOUR.to_string(),
+        // Wind
+        "011" => WIND_COLOUR.to_string(),
+        // Thunder
+        "100" => THUNDER_COLOUR.to_string(),
+        // Water
+        "010" => WATER_COLOUR.to_string(),
+        // Mountain
+        "001" => MOUNTAIN_COLOUR.to_string(),
+        // Earth
+        "000" => EARTH_COLOUR.to_string(),
+        // Error
+        _ => "".to_string(),
+    }
 }

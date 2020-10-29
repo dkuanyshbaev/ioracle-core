@@ -83,9 +83,10 @@ fn main() {
                     Err(error) => println!("Can't connect to output socket: {:?}", error),
                 };
 
-                if let Some(mut controller) = wires::build_controller() {
-                    wires::display(&mut controller, &v.hexagram, &v.related);
-                }
+                // if let Some(mut controller) = wires::build_controller() {
+                //     wires::display(&mut controller, &v.hexagram, &v.related);
+                // }
+                wires::display(&v.hexagram, &v.related);
 
                 thread::sleep(Duration::from_secs(8));
                 ioracle = ioracle.step();
