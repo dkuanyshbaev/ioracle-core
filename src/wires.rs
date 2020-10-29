@@ -47,8 +47,8 @@ pub fn build_controller() -> Option<Controller> {
 
 pub fn render(l: u8, line_num: i32, controller: &mut Controller, colour: &String) {
     match l {
-        1 => render_yin(line_num, controller, colour),
-        _ => render_yang(line_num, controller, colour),
+        1 => render_yang(line_num, controller, colour),
+        _ => render_yin(line_num, controller, colour),
     }
 }
 
@@ -359,6 +359,11 @@ pub fn display(hexagram: &String, related: &String) {
                 i += 1;
             }
 
+            // // Yao
+            // for num in 0..yao.len() {
+            //     yao[num as usize] = [0, 0, 0, 0];
+            // }
+            //
             // // Li
             // for num in 0..li.len() {
             //     li[num as usize] = [0, 0, 0, 0];
@@ -570,5 +575,92 @@ pub fn get_trigram_colour(t: String) -> String {
         "000" => EARTH_COLOUR.to_string(),
         // Error
         _ => "".to_string(),
+    }
+}
+
+pub fn display_yao(controller: &mut Controller, hexagram: &String, related: &String) {
+    let yao = controller.leds_mut(0);
+    let first_color = get_trigram_colour(hexagram[0..3].to_string());
+    let second_colour = get_trigram_colour(hexagram[3..6].to_string());
+    let mut colour = "".to_string();
+    let mut rng1 = rand::thread_rng();
+    let mut rng2 = rand::thread_rng();
+    let mut rng3 = rand::thread_rng();
+
+    let s = 3..=5;
+    let mut i = 1;
+    let mut j = 1;
+    for (x, y) in hexagram.chars().zip(related.chars()) {
+        match i {
+            1 => j = 6,
+            2 => j = 1,
+            3 => j = 2,
+            4 => j = 3,
+            5 => j = 4,
+            _ => j = 5,
+        };
+
+        let mut b = 0;
+        if x.eq(&'1') {
+            b = 1;
+        }
+
+        if x.eq(&y) {
+            if s.contains(&j) {
+                colour = second_colour.clone();
+            } else {
+                colour = first_color.clone();
+            }
+
+            let (a, b, c) = parse_colour(&colour);
+            let part = LEDS_IN_LINE / 3;
+            let position = LEDS_IN_LINE * (j - 1);
+            for num in position..position + LEDS_IN_LINE {
+                if b == 0 {
+                    if num > position + part && num < position + part * 2 {
+                        yao[num as usize] = [0, 0, 0, 0];
+                    } else {
+                        yao[num as usize] = [c, a, b, 0];
+                    }
+                } else {
+                    yao[num as usize] = [c, a, b, 0];
+                }
+            }
+        } else {
+            // changed line
+            let part = LEDS_IN_LINE / 3;
+            let position = LEDS_IN_LINE * (j - 1);
+            for num in position..position + LEDS_IN_LINE {
+                // let red_range = Uniform::from(54..255);
+                // let r = red_range.sample(&mut rng1);
+                //
+                // let green_range = Uniform::from(0..r / 4);
+                // let g = green_range.sample(&mut rng2);
+                //
+                // let blue_range = Uniform::from(0..r / 4);
+                // let b = blue_range.sample(&mut rng3);
+
+                if b == 0 {
+                    if num > position + part && num < position + part * 2 {
+                        yao[num as usize] = [0, 0, 0, 0];
+                    } else {
+                        // yao[num as usize] = [b, g, r, 0];
+                        yao[num as usize] = [255, 255, 255, 0];
+                    }
+                } else {
+                    // yao[num as usize] = [b, g, r, 0];
+                    yao[num as usize] = [255, 255, 255, 0];
+                }
+            }
+        }
+        i += 1;
+    }
+}
+
+pub fn display_li(controller: &mut Controller) {
+    let li = controller.leds_mut(1);
+    for num in 0..li.len() {
+        // li[num as usize] = [0, 0, 0, 0];
+        li[num as usize] = [255, 255, 255, 0];
     }
 }

@@ -4,7 +4,7 @@ mod wires;
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 use std::{process, thread};
 
 const IORACLE_IN: &str = "/tmp/ioracle.in";
@@ -83,10 +83,23 @@ fn main() {
                     Err(error) => println!("Can't connect to output socket: {:?}", error),
                 };
 
-                // if let Some(mut controller) = wires::build_controller() {
-                //     wires::display(&mut controller, &v.hexagram, &v.related);
-                // }
-                wires::display(&v.hexagram, &v.related);
+                let start = SystemTime::now();
+                if let Some(mut controller) = wires::build_controller() {
+                    loop {
+                        if let Ok(d) = start.elapsed() {
+                            if d > Duration::from_secs(120) {
+                                break;
+                            };
+                        }
+
+                        wires::display_yao(&mut controller, &v.hexagram, &v.related);
+                        wires::display_li(&mut controller);
+
+                        if let Err(e) = controller.render() {
+                            println!("{:?}", e);
+                        };
+                    }
+                }
 
                 thread::sleep(Duration::from_secs(8));
                 ioracle = ioracle.step();
