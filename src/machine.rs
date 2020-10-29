@@ -1,6 +1,7 @@
 // This is our state machine.
 pub struct IOracle<S> {
     pub hexagram: String,
+    pub related: String,
     state: S,
 }
 
@@ -15,6 +16,7 @@ impl IOracle<Resting> {
         println!("start in resting");
         IOracle {
             hexagram: "000000".to_string(),
+            related: "000000".to_string(),
             state: Resting,
         }
     }
@@ -26,6 +28,7 @@ impl From<IOracle<Resting>> for IOracle<Reading> {
         println!("resting -> reading");
         IOracle {
             hexagram: val.hexagram,
+            related: val.related,
             state: Reading,
         }
     }
@@ -36,6 +39,7 @@ impl From<IOracle<Reading>> for IOracle<Displaying> {
         println!("reading -> displaying");
         IOracle {
             hexagram: val.hexagram,
+            related: val.related,
             state: Displaying,
         }
     }
@@ -46,6 +50,7 @@ impl From<IOracle<Displaying>> for IOracle<Resting> {
         println!("displaying -> resting");
         IOracle {
             hexagram: val.hexagram,
+            related: val.related,
             state: Resting,
         }
     }

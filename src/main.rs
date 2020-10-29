@@ -25,7 +25,6 @@ fn main() {
     });
 
     let mut ioracle = machine::IOracleWrapper::Resting(machine::IOracle::new());
-
     loop {
         match ioracle {
             machine::IOracleWrapper::Resting(_) => {
@@ -56,32 +55,39 @@ fn main() {
                     }
                 }
             }
-            // machine::IOracleWrapper::Reading(_) => {
             machine::IOracleWrapper::Reading(ref mut v) => {
                 println!("---------------{:?}", v.hexagram);
+                println!("---------------{:?}", v.related);
+
                 if let Some(mut controller) = wires::build_controller() {
-                    wires::reading(&mut controller);
+                    let (h, r) = wires::reading(&mut controller);
+                    v.hexagram = h;
+                    v.related = r;
                 }
-                v.hexagram = "111111".to_string();
+
+                thread::sleep(Duration::from_secs(1));
                 ioracle = ioracle.step();
             }
             machine::IOracleWrapper::Displaying(ref v) => {
                 println!("displaying now");
                 println!("---------------{:?}", v.hexagram);
+                println!("---------------{:?}", v.related);
+
+                if let Some(mut controller) = wires::build_controller() {
+                    wires::display(&mut controller, &v.hexagram, &v.related);
+                }
 
                 match UnixStream::connect(IORACLE_OUT) {
                     Ok(mut stream) => {
-                        match stream.write_all(b"100100") {
-                            Ok(_) => {
-                                println!("result is send");
-                            }
-                            Err(e) => println!("{:?}", e),
+                        let result = format!("{}|{}", &v.hexagram, &v.related).into_bytes();
+                        if let Err(error) = stream.write_all(&result) {
+                            println!("Can't write to stream: {:?}", error);
                         };
                     }
-                    Err(e) => println!("{:?}", e),
+                    Err(error) => println!("Can't connect to output socket: {:?}", error),
                 };
-                thread::sleep(Duration::from_secs(8));
 
+                thread::sleep(Duration::from_secs(8));
                 ioracle = ioracle.step();
             }
         };

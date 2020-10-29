@@ -130,7 +130,7 @@ pub fn render_resting(controller: &mut Controller) {
     }
 }
 
-pub fn reading(controller: &mut Controller) -> String {
+pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("New reading.");
     let yao = controller.leds_mut(0);
 
@@ -142,21 +142,26 @@ pub fn reading(controller: &mut Controller) -> String {
         println!("{:?}", e);
     };
 
+    let m = "1".to_string();
+    let b = "500".to_string();
+    let t = "10".to_string();
+    let default = "rgb(51, 0, 180)".to_string();
+
     //---------------------------------------------------
 
-    let line1 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    let line1 = read(2, m.clone(), b.clone(), t.clone());
     println!("line1 = {}", line1);
-    render(line1, 6, controller, &"rgb(51, 0, 180)".to_string());
+    render(line1, 6, controller, &default);
     thread::sleep(Duration::from_secs(3));
 
-    let line2 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    let line2 = read(2, m.clone(), b.clone(), t.clone());
     println!("line2 = {}", line2);
-    render(line2, 1, controller, &"rgb(51, 0, 180)".to_string());
+    render(line2, 1, controller, &default);
     thread::sleep(Duration::from_secs(3));
 
-    let line3 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    let line3 = read(2, m.clone(), b.clone(), t.clone());
     println!("line3 = {}", line3);
-    render(line3, 2, controller, &"rgb(51, 0, 180)".to_string());
+    render(line3, 2, controller, &default);
     thread::sleep(Duration::from_secs(3));
 
     // pub fn render_first(&self, settings: &Binding, controller: &mut Controller) {
@@ -164,19 +169,19 @@ pub fn reading(controller: &mut Controller) -> String {
     // get related lines
     // get related trigram
 
-    let line4 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
-    render(line4, 3, controller, &"rgb(51, 0, 180)".to_string());
+    render(line4, 3, controller, &default);
     thread::sleep(Duration::from_secs(3));
 
-    let line5 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    let line5 = read(2, m.clone(), b.clone(), t.clone());
     println!("line5 = {}", line5);
-    render(line5, 4, controller, &"rgb(51, 0, 180)".to_string());
+    render(line5, 4, controller, &default);
     thread::sleep(Duration::from_secs(3));
 
-    let line6 = read(2, "1".to_string(), "500".to_string(), "10".to_string());
+    let line6 = read(2, m.clone(), b.clone(), t.clone());
     println!("line6 = {}", line6);
-    render(line6, 5, controller, &"rgb(51, 0, 180)".to_string());
+    render(line6, 5, controller, &default);
     thread::sleep(Duration::from_secs(3));
     //---------------------------------------------------
 
@@ -186,7 +191,11 @@ pub fn reading(controller: &mut Controller) -> String {
 
     // reset pins
     // return hex + rel
-    "101001".to_string()
+
+    let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
+    let related = hexagram.clone();
+
+    (hexagram, related)
 }
 
 pub fn read_the_pip(delta: u64) -> Vec<i32> {
@@ -285,4 +294,16 @@ pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
     } else {
         0
     }
+}
+
+pub fn display(controller: &mut Controller, _hexagram: &String, _related: &String) {
+    let yao = controller.leds_mut(0);
+
+    for num in 0..LEDS_IN_LINE * 6 {
+        yao[num as usize] = [0, 0, 0, 0];
+    }
+
+    if let Err(e) = controller.render() {
+        println!("{:?}", e);
+    };
 }
