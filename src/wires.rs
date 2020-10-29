@@ -1,9 +1,9 @@
 use rand::distributions::{Distribution, Uniform};
-// use rppal::gpio::Gpio;
+use rppal::gpio::Gpio;
 use rs_ws281x::{ChannelBuilder, Controller, ControllerBuilder, StripType};
 use serialport::prelude::*;
-use std::thread;
 use std::time::{Duration, SystemTime};
+use std::{process, thread};
 
 const LEDS_IN_LINE: i32 = 144;
 
@@ -142,11 +142,11 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
         println!("{:?}", e);
     };
 
+    //---------------------------------------------------
     let m = "1".to_string();
     let b = "500".to_string();
     let t = "10".to_string();
     let default = "rgb(51, 0, 180)".to_string();
-
     //---------------------------------------------------
 
     let line1 = read(2, m.clone(), b.clone(), t.clone());
@@ -164,10 +164,11 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     render(line3, 2, controller, &default);
     thread::sleep(Duration::from_secs(3));
 
-    // pub fn render_first(&self, settings: &Binding, controller: &mut Controller) {
-    // reaction
+    let first = format!("{}{}{}", line1, line2, line3);
+    react(controller, &first, 6, 1, 2);
+
     // get related lines
-    // get related trigram
+    drop_pins();
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
@@ -183,14 +184,12 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("line6 = {}", line6);
     render(line6, 5, controller, &default);
     thread::sleep(Duration::from_secs(3));
-    //---------------------------------------------------
 
-    // reaction
+    let second = format!("{}{}{}", line4, line5, line6);
+    react(controller, &second, 3, 4, 5);
+
     // get related lines
-    // get related trigram
-
-    // reset pins
-    // return hex + rel
+    drop_pins();
 
     let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
     let related = hexagram.clone();
@@ -305,5 +304,176 @@ pub fn display(controller: &mut Controller, _hexagram: &String, _related: &Strin
 
     if let Err(e) = controller.render() {
         println!("{:?}", e);
+    };
+}
+
+pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3: i32) {
+    let heaven_colour = "rgb(224, 4, 235)".to_string();
+    let cloud_colour = "rgb(255, 2, 14)".to_string();
+    let sun_colour = "rgb(255, 109, 0)".to_string();
+    let wind_colour = "rgb(121, 255, 0)".to_string();
+    let thunder_colour = "rgb(255, 53, 6)".to_string();
+    let water_colour = "rgb(38, 2, 255)".to_string();
+    let mountain_colour = "rgb(14, 255, 232)".to_string();
+    let earth_colour = "rgb(0, 0, 0)".to_string();
+
+    match trigram.as_str() {
+        // Heaven
+        "111" => {
+            pin_on(5);
+            render_yang(l1, controller, &heaven_colour);
+            render_yang(l2, controller, &heaven_colour);
+            render_yang(l3, controller, &heaven_colour);
+        }
+        // Cloud
+        "110" => {
+            pin_on(8);
+            render_yang(l1, controller, &cloud_colour);
+            render_yang(l2, controller, &cloud_colour);
+            render_yin(l3, controller, &cloud_colour);
+        }
+        // Sun
+        "101" => {
+            shell_fire();
+            render_yang(l1, controller, &sun_colour);
+            render_yin(l2, controller, &sun_colour);
+            render_yang(l3, controller, &sun_colour);
+        }
+        // Wind
+        "011" => {
+            pin_on(20);
+            render_yin(l1, controller, &wind_colour);
+            render_yang(l2, controller, &wind_colour);
+            render_yang(l3, controller, &wind_colour);
+        }
+        // Thunder
+        "100" => {
+            play_sound("Thunder.wav".to_string());
+            render_yang(l1, controller, &thunder_colour);
+            render_yin(l2, controller, &thunder_colour);
+            render_yin(l3, controller, &thunder_colour);
+        }
+        // Water
+        "010" => {
+            pin_on(6);
+            render_yin(l1, controller, &water_colour);
+            render_yang(l2, controller, &water_colour);
+            render_yin(l3, controller, &water_colour);
+        }
+        // Mountain
+        "001" => {
+            pin_on(7);
+            play_sound("EarthMountain.wav".to_string());
+            render_yin(l1, controller, &mountain_colour);
+            render_yin(l2, controller, &mountain_colour);
+            render_yang(l3, controller, &mountain_colour);
+        }
+        // Earth
+        "000" => {
+            play_sound("EarthMountain.wav".to_string());
+            render_yin(l1, controller, &earth_colour);
+            render_yin(l2, controller, &earth_colour);
+            render_yin(l3, controller, &earth_colour);
+        }
+        // Error
+        _ => {}
+    }
+}
+
+pub fn pin_on(pin: u8) {
+    println!("--------> pin {}: on", pin);
+
+    if pin == 8 {
+        if let Ok(gpio) = Gpio::new() {
+            if let Ok(pin8) = gpio.get(8) {
+                let mut pin8 = pin8.into_output();
+                pin8.set_high();
+                thread::sleep(Duration::from_secs(6));
+                pin8.set_low();
+            }
+        }
+    } else if pin == 7 {
+        if let Ok(gpio) = Gpio::new() {
+            if let Ok(pin7) = gpio.get(7) {
+                let mut pin7 = pin7.into_output();
+                pin7.set_high();
+                thread::sleep(Duration::from_secs(4));
+                pin7.set_low();
+            }
+        }
+    } else {
+        if let Ok(gpio) = Gpio::new() {
+            if let Ok(pin) = gpio.get(pin) {
+                let mut pin = pin.into_output();
+                pin.set_high();
+            }
+        }
+    }
+}
+
+pub fn pin_off(pin: u8) {
+    println!("--------> pin {}: off", pin);
+    if let Ok(gpio) = Gpio::new() {
+        if let Ok(pin) = gpio.get(pin) {
+            let mut pin = pin.into_output();
+            pin.set_low();
+        }
+    }
+}
+
+pub fn shell_fire() {
+    println!("--------> shell fire");
+
+    match process::Command::new("/ioracle/scripts/fire.sh").output() {
+        Ok(output) => println!("{:?}", output),
+        Err(error) => println!("{:?}", error),
+    }
+}
+
+pub fn play_sound(file_name: String) {
+    println!("--------> play: {}", file_name);
+
+    let cmd;
+    if file_name == "Thunder.wav" {
+        cmd = "/ioracle/scripts/thunder_sound.sh";
+    } else {
+        cmd = "/ioracle/scripts/earth_mountain.sh";
+    }
+
+    match process::Command::new(cmd).output() {
+        Ok(output) => println!("{:?}", output),
+        Err(error) => println!("{:?}", error),
+    }
+}
+
+pub fn drop_pins() {
+    println!("--------> drop pins");
+
+    pin_off(5);
+    pin_off(8);
+    pin_off(20);
+    pin_off(6);
+    pin_off(7);
+}
+
+pub fn drop_lines(controller: &mut Controller) {
+    println!("--------> drop lines");
+
+    // all leds to resting_colour
+    let (a, b, c) = parse_colour(&"rgb(2, 233, 211)".to_string());
+
+    let yao_leds = controller.leds_mut(0);
+    // for num in 0..yao_leds.len() - 1 {
+    for num in 0..yao_leds.len() {
+        yao_leds[num as usize] = [c, a, b, 0];
+    }
+    let li_leds = controller.leds_mut(1);
+    // for num in 0..li_leds.len() - 1 {
+    for num in 0..li_leds.len() {
+        li_leds[num as usize] = [c, a, b, 0];
+    }
+
+    if let Err(error) = controller.render() {
+        println!("{:?}", error);
     };
 }
