@@ -162,12 +162,16 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let line3 = read(2, m.clone(), b.clone(), t.clone());
     println!("line3 = {}", line3);
     render(line3, 2, controller, &default);
-    thread::sleep(Duration::from_secs(3));
+    thread::sleep(Duration::from_secs(1));
 
     let first = format!("{}{}{}", line1, line2, line3);
     react(controller, &first, 6, 1, 2);
 
-    // get related lines
+    // get related lines -----------------------------------
+    let lr1 = read(1, m.clone(), b.clone(), t.clone());
+    let lr2 = read(1, m.clone(), b.clone(), t.clone());
+    let lr3 = read(1, m.clone(), b.clone(), t.clone());
+    //------------------------------------------------------
     drop_pins();
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
@@ -183,16 +187,21 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let line6 = read(2, m.clone(), b.clone(), t.clone());
     println!("line6 = {}", line6);
     render(line6, 5, controller, &default);
-    thread::sleep(Duration::from_secs(3));
+    thread::sleep(Duration::from_secs(1));
 
     let second = format!("{}{}{}", line4, line5, line6);
     react(controller, &second, 3, 4, 5);
 
-    // get related lines
+    // get related lines -----------------------------------
+    let lr4 = read(1, m.clone(), b.clone(), t.clone());
+    let lr5 = read(1, m.clone(), b.clone(), t.clone());
+    let lr6 = read(1, m.clone(), b.clone(), t.clone());
+    //------------------------------------------------------
     drop_pins();
 
     let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
-    let related = hexagram.clone();
+    let related_unchanged = format!("{}{}{}{}{}{}", lr1, lr2, lr3, lr4, lr5, lr6);
+    let related = get_related(&hexagram, &related_unchanged);
 
     (hexagram, related)
 }
@@ -476,4 +485,21 @@ pub fn drop_lines(controller: &mut Controller) {
     if let Err(error) = controller.render() {
         println!("{:?}", error);
     };
+}
+
+pub fn get_related(h: &String, r: &String) -> String {
+    let mut result = "".to_string();
+    for (x, y) in h.chars().zip(r.chars()) {
+        if x.eq(&y) {
+            if x.eq(&'0') {
+                result = format!("{}1", result);
+            } else {
+                result = format!("{}0", result);
+            }
+        } else {
+            result = format!("{}{}", result, x);
+        }
+    }
+
+    result
 }
