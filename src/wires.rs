@@ -306,14 +306,28 @@ pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
 
 pub fn display(controller: &mut Controller, _hexagram: &String, _related: &String) {
     let yao = controller.leds_mut(0);
+    let li = controller.leds_mut(1);
+    let start = SystemTime::now();
 
-    for num in 0..LEDS_IN_LINE * 6 {
-        yao[num as usize] = [0, 0, 0, 0];
+    loop {
+        if let Ok(d) = start.elapsed() {
+            if d > Duration::from_secs(120) {
+                break;
+            };
+        }
+
+        // for num in 0..yao.len() {
+        //     yao[num as usize] = [c, a, b, 0];
+        // }
+
+        // for num in 0..li.len() {
+        //     li[num as usize] = [c, a, b, 0];
+        // }
+
+        if let Err(e) = controller.render() {
+            println!("{:?}", e);
+        };
     }
-
-    if let Err(e) = controller.render() {
-        println!("{:?}", e);
-    };
 }
 
 pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3: i32) {
