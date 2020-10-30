@@ -519,23 +519,25 @@ pub fn pin_on(pin: u8) {
     println!("--------> pin {}: on", pin);
 
     if pin == 8 {
-        if let Ok(gpio) = Gpio::new() {
-            if let Ok(pin8) = gpio.get(8) {
-                let mut pin8 = pin8.into_output();
-                pin8.set_high();
-                thread::sleep(Duration::from_secs(6));
-                pin8.set_low();
-            }
-        }
+        pin8_start();
+    // if let Ok(gpio) = Gpio::new() {
+    //     if let Ok(pin8) = gpio.get(8) {
+    //         let mut pin8 = pin8.into_output();
+    //         pin8.set_high();
+    //         thread::sleep(Duration::from_secs(6));
+    //         pin8.set_low();
+    //     }
+    // }
     } else if pin == 7 {
-        if let Ok(gpio) = Gpio::new() {
-            if let Ok(pin7) = gpio.get(7) {
-                let mut pin7 = pin7.into_output();
-                pin7.set_high();
-                thread::sleep(Duration::from_secs(4));
-                pin7.set_low();
-            }
-        }
+        pin7_start();
+    // if let Ok(gpio) = Gpio::new() {
+    //     if let Ok(pin7) = gpio.get(7) {
+    //         let mut pin7 = pin7.into_output();
+    //         pin7.set_high();
+    //         thread::sleep(Duration::from_secs(4));
+    //         pin7.set_low();
+    //     }
+    // }
     } else {
         if let Ok(gpio) = Gpio::new() {
             if let Ok(pin) = gpio.get(pin) {
@@ -562,6 +564,18 @@ pub fn shell_fire() {
     match process::Command::new("/ioracle/scripts/fire.sh").output() {
         Ok(output) => println!("{:?}", output),
         Err(error) => println!("{:?}", error),
+    }
+}
+
+pub fn pin7_start() {
+    if let Err(e) = std::process::Command::new("/ioracle/scripts/pin7.sh").output() {
+        println!("{:?}", e);
+    }
+}
+
+pub fn pin8_start() {
+    if let Err(e) = std::process::Command::new("/ioracle/scripts/pin8.sh").output() {
+        println!("{:?}", e);
     }
 }
 
