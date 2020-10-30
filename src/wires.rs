@@ -1,4 +1,4 @@
-// use rand::distributions::{Distribution, Uniform};
+use rand::distributions::{Distribution, Uniform};
 use rppal::gpio::Gpio;
 use rs_ws281x::{ChannelBuilder, Controller, ControllerBuilder, StripType};
 use serialport::prelude::*;
@@ -139,8 +139,58 @@ pub fn render_resting(controller: &mut Controller) {
         yao[num as usize] = [0, 0, 0, 0];
     }
 
+    let li = controller.leds_mut(1);
+    let mut rng1 = rand::thread_rng();
+    let mut rng2 = rand::thread_rng();
+    let blue_range = Uniform::from(54..255);
+
+    // let mut k;
+    // for i in 0..li.len() {
+    //     k = i * 9;
+    //     // !!!???
+    //     if k > li.len() - 9 {
+    //         k = li.len() - 9;
+    //     }
+    //     for j in k..k + 9 {
+    //         let b = blue_range.sample(&mut rng1);
+    //         let green_range = Uniform::from(0..b / 4);
+    //         let g = green_range.sample(&mut rng2);
+    //         li[j as usize] = [b, g, 0, 0];
+    //     }
+    // }
+
+    for num in 0..li.len() {
+        let b = blue_range.sample(&mut rng1);
+        let green_range = Uniform::from(0..b / 4);
+        let g = green_range.sample(&mut rng2);
+        li[num as usize] = [b, g, 0, 0];
+    }
+
+    // let li = controller.leds_mut(1);
+    // for num in 0..li.len() {
+    //     li[num as usize] = [255, 255, 255, 0];
+    // }
+
     if let Err(e) = controller.render() {
         println!("Resting error: {:?}", e);
+    }
+}
+
+pub fn render_li(controller: &mut Controller) {
+    let li = controller.leds_mut(1);
+    let mut rng1 = rand::thread_rng();
+    let mut rng2 = rand::thread_rng();
+    let blue_range = Uniform::from(54..200);
+
+    for num in 0..li.len() {
+        let b = blue_range.sample(&mut rng1);
+        let green_range = Uniform::from(0..b / 4);
+        let g = green_range.sample(&mut rng2);
+        li[num as usize] = [b, g, 0, 0];
+    }
+
+    if let Err(e) = controller.render() {
+        println!("Li error: {:?}", e);
     }
 }
 
@@ -165,16 +215,20 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let line1 = read(2, m.clone(), b.clone(), t.clone());
     println!("line1 = {}", line1);
     render(line1, 6, controller, &DEFAULT_COLOUR.to_string());
+    // ????
+    render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line2 = read(2, m.clone(), b.clone(), t.clone());
     println!("line2 = {}", line2);
     render(line2, 1, controller, &DEFAULT_COLOUR.to_string());
+    render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line3 = read(2, m.clone(), b.clone(), t.clone());
     println!("line3 = {}", line3);
     render(line3, 2, controller, &DEFAULT_COLOUR.to_string());
+    render_li(controller);
 
     let first = format!("{}{}{}", line1, line2, line3);
     react(controller, &first, 6, 1, 2);
@@ -197,16 +251,19 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
     render(line4, 3, controller, &DEFAULT_COLOUR.to_string());
+    render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line5 = read(2, m.clone(), b.clone(), t.clone());
     println!("line5 = {}", line5);
     render(line5, 4, controller, &DEFAULT_COLOUR.to_string());
+    render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line6 = read(2, m.clone(), b.clone(), t.clone());
     println!("line6 = {}", line6);
     render(line6, 5, controller, &DEFAULT_COLOUR.to_string());
+    render_li(controller);
 
     let second = format!("{}{}{}", line4, line5, line6);
     react(controller, &second, 3, 4, 5);
