@@ -4,7 +4,7 @@ mod wires;
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::Path;
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 use std::{process, thread};
 
 const IORACLE_IN: &str = "/tmp/ioracle.in";
@@ -18,7 +18,6 @@ fn main() {
             process::exit(1);
         };
     }
-
     let listener = UnixListener::bind(IORACLE_IN).unwrap_or_else(|error| {
         println!("{}", error);
         process::exit(1);
@@ -46,7 +45,7 @@ fn main() {
                             }
                             Err(_) => {
                                 // println!("LED update");
-                                if let Some(mut controller) = wires::build_controller() {
+                                if let Some(mut controller) = wires::build_controller(100) {
                                     wires::render_resting(&mut controller);
                                 };
                             }
@@ -56,20 +55,15 @@ fn main() {
                 }
             }
             machine::IOracleWrapper::Reading(ref mut v) => {
-                println!("---------------{:?}", v.hexagram);
-                println!("---------------{:?}", v.related);
-
-                if let Some(mut controller) = wires::build_controller() {
+                if let Some(mut controller) = wires::build_controller(255) {
                     let (h, r) = wires::reading(&mut controller);
                     v.hexagram = h;
                     v.related = r;
                 }
 
-                thread::sleep(Duration::from_secs(1));
                 ioracle = ioracle.step();
             }
             machine::IOracleWrapper::Displaying(ref v) => {
-                println!("displaying now");
                 println!("---------------{:?}", v.hexagram);
                 println!("---------------{:?}", v.related);
 
@@ -83,25 +77,31 @@ fn main() {
                     Err(error) => println!("Can't connect to output socket: {:?}", error),
                 };
 
-                let start = SystemTime::now();
-                if let Some(mut controller) = wires::build_controller() {
-                    loop {
-                        if let Ok(d) = start.elapsed() {
-                            if d > Duration::from_secs(120) {
-                                break;
-                            };
-                        }
+                // let start = SystemTime::now();
+                // if let Some(mut controller) = wires::build_controller() {
+                //     // loop {
+                //     //     if let Ok(d) = start.elapsed() {
+                //     //         if d > Duration::from_secs(120) {
+                //     //             break;
+                //     //         };
+                //     //     }
+                //     //
+                //     //     wires::display_yao(&mut controller, &v.hexagram, &v.related);
+                //     //     wires::display_li(&mut controller);
+                //     //
+                //     //     if let Err(e) = controller.render() {
+                //     //         println!("{:?}", e);
+                //     //     };
+                //     // }
+                //     wires::display_yao(&mut controller, &v.hexagram, &v.related);
+                //     // wires::display_li(&mut controller);
+                //
+                //     if let Err(e) = controller.render() {
+                //         println!("{:?}", e);
+                //     };
+                // }
+                thread::sleep(Duration::from_secs(100));
 
-                        wires::display_yao(&mut controller, &v.hexagram, &v.related);
-                        wires::display_li(&mut controller);
-
-                        if let Err(e) = controller.render() {
-                            println!("{:?}", e);
-                        };
-                    }
-                }
-
-                thread::sleep(Duration::from_secs(8));
                 ioracle = ioracle.step();
             }
         };

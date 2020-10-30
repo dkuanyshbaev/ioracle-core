@@ -1,4 +1,4 @@
-use rand::distributions::{Distribution, Uniform};
+// use rand::distributions::{Distribution, Uniform};
 use rppal::gpio::Gpio;
 use rs_ws281x::{ChannelBuilder, Controller, ControllerBuilder, StripType};
 use serialport::prelude::*;
@@ -6,6 +6,8 @@ use std::time::{Duration, SystemTime};
 use std::{process, thread};
 
 const LEDS_IN_LINE: i32 = 144;
+
+const DEFAULT_COLOUR: &str = "rgb(51, 0, 180)";
 
 const HEAVEN_COLOUR: &str = "rgb(224, 4, 235)";
 const CLOUD_COLOUR: &str = "rgb(255, 2, 14)";
@@ -16,7 +18,7 @@ const WATER_COLOUR: &str = "rgb(38, 2, 255)";
 const MOUNTAIN_COLOUR: &str = "rgb(14, 255, 232)";
 const EARTH_COLOUR: &str = "rgb(0, 0, 0)";
 
-pub fn build_controller() -> Option<Controller> {
+pub fn build_controller(b: u8) -> Option<Controller> {
     match ControllerBuilder::new()
         .freq(800_000)
         .dma(10)
@@ -26,7 +28,7 @@ pub fn build_controller() -> Option<Controller> {
                 .pin(12)
                 .count(6 * LEDS_IN_LINE)
                 .strip_type(StripType::Ws2811Rgb)
-                .brightness(255)
+                .brightness(b)
                 .build(),
         )
         .channel(
@@ -35,7 +37,7 @@ pub fn build_controller() -> Option<Controller> {
                 .pin(13)
                 .count(3 * LEDS_IN_LINE)
                 .strip_type(StripType::Ws2811Rgb)
-                .brightness(255)
+                .brightness(b)
                 .build(),
         )
         .build()
@@ -62,7 +64,6 @@ pub fn render_yin(line_num: i32, controller: &mut Controller, colour: &String) {
         if num > position + part && num < position + part * 2 {
             leds[num as usize] = [0, 0, 0, 0];
         } else {
-            // leds[num as usize] = [a, b, c, 0];
             leds[num as usize] = [c, a, b, 0];
         }
     }
@@ -78,7 +79,6 @@ pub fn render_yang(line_num: i32, controller: &mut Controller, colour: &String) 
 
     let position = LEDS_IN_LINE * (line_num - 1);
     for num in position..position + LEDS_IN_LINE {
-        // leds[num as usize] = [a, b, c, 0];
         leds[num as usize] = [c, a, b, 0];
     }
 
@@ -111,31 +111,36 @@ fn parse_colour(colour: &String) -> (u8, u8, u8) {
 }
 
 pub fn render_resting(controller: &mut Controller) {
-    let mut rng1 = rand::thread_rng();
-    let mut rng2 = rand::thread_rng();
+    // let mut rng1 = rand::thread_rng();
+    // let mut rng2 = rand::thread_rng();
+    //
+    // let yao = controller.leds_mut(0);
+    // let red_range = Uniform::from(54..255);
+    //
+    // let mut k;
+    // for i in 0..yao.len() - 1 {
+    //     k = i * 9;
+    //     // !!!???
+    //     if k > yao.len() - 9 {
+    //         k = yao.len() - 9;
+    //     }
+    //     for j in k..k + 9 {
+    //         let r = red_range.sample(&mut rng1);
+    //         let green_range = Uniform::from(0..r / 4);
+    //         let g = green_range.sample(&mut rng2);
+    //         yao[j as usize] = [0, g, r, 0];
+    //     }
+    // }
+    //
+    // std::thread::sleep(Duration::from_millis(70));
 
     let yao = controller.leds_mut(0);
-    let red_range = Uniform::from(54..255);
-
-    let mut k;
-    for i in 0..yao.len() - 1 {
-        k = i * 9;
-        // !!!???
-        if k > yao.len() - 9 {
-            k = yao.len() - 9;
-        }
-        for j in k..k + 9 {
-            let r = red_range.sample(&mut rng1);
-            let green_range = Uniform::from(0..r / 4);
-            let g = green_range.sample(&mut rng2);
-            yao[j as usize] = [0, g, r, 0];
-        }
+    for num in 0..yao.len() {
+        yao[num as usize] = [0, 0, 0, 0];
     }
 
-    std::thread::sleep(Duration::from_millis(70));
-
     if let Err(e) = controller.render() {
-        println!("Fire error: {:?}", e);
+        println!("Resting error: {:?}", e);
     }
 }
 
@@ -155,26 +160,32 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let m = "1".to_string();
     let b = "500".to_string();
     let t = "10".to_string();
-    let default = "rgb(51, 0, 180)".to_string();
     //---------------------------------------------------
 
     let line1 = read(2, m.clone(), b.clone(), t.clone());
     println!("line1 = {}", line1);
-    render(line1, 6, controller, &default);
+    render(line1, 6, controller, &DEFAULT_COLOUR.to_string());
     thread::sleep(Duration::from_secs(3));
 
     let line2 = read(2, m.clone(), b.clone(), t.clone());
     println!("line2 = {}", line2);
-    render(line2, 1, controller, &default);
+    render(line2, 1, controller, &DEFAULT_COLOUR.to_string());
     thread::sleep(Duration::from_secs(3));
 
     let line3 = read(2, m.clone(), b.clone(), t.clone());
     println!("line3 = {}", line3);
-    render(line3, 2, controller, &default);
-    thread::sleep(Duration::from_secs(1));
+    render(line3, 2, controller, &DEFAULT_COLOUR.to_string());
 
     let first = format!("{}{}{}", line1, line2, line3);
     react(controller, &first, 6, 1, 2);
+
+    // special Earth rules
+    if first == "000" {
+        thread::sleep(Duration::from_secs(2));
+        render_yin(6, controller, &DEFAULT_COLOUR.to_string());
+        render_yin(1, controller, &DEFAULT_COLOUR.to_string());
+        render_yin(2, controller, &DEFAULT_COLOUR.to_string());
+    }
 
     // get related lines -----------------------------------
     let lr1 = read(1, m.clone(), b.clone(), t.clone());
@@ -185,21 +196,28 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
-    render(line4, 3, controller, &default);
+    render(line4, 3, controller, &DEFAULT_COLOUR.to_string());
     thread::sleep(Duration::from_secs(3));
 
     let line5 = read(2, m.clone(), b.clone(), t.clone());
     println!("line5 = {}", line5);
-    render(line5, 4, controller, &default);
+    render(line5, 4, controller, &DEFAULT_COLOUR.to_string());
     thread::sleep(Duration::from_secs(3));
 
     let line6 = read(2, m.clone(), b.clone(), t.clone());
     println!("line6 = {}", line6);
-    render(line6, 5, controller, &default);
-    thread::sleep(Duration::from_secs(1));
+    render(line6, 5, controller, &DEFAULT_COLOUR.to_string());
 
     let second = format!("{}{}{}", line4, line5, line6);
     react(controller, &second, 3, 4, 5);
+
+    // special Earth rules
+    if second == "000" {
+        thread::sleep(Duration::from_secs(1));
+        render_yin(3, controller, &DEFAULT_COLOUR.to_string());
+        render_yin(4, controller, &DEFAULT_COLOUR.to_string());
+        render_yin(5, controller, &DEFAULT_COLOUR.to_string());
+    }
 
     // get related lines -----------------------------------
     let lr4 = read(1, m.clone(), b.clone(), t.clone());
@@ -314,67 +332,67 @@ pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
 }
 
 // pub fn display(controller: &mut Controller, hexagram: &String, related: &String) {
-pub fn display(hexagram: &String, related: &String) {
-    let start = SystemTime::now();
-    let first_color = get_trigram_colour(hexagram[0..3].to_string());
-    let second_colour = get_trigram_colour(hexagram[3..6].to_string());
-    let mut colour = "".to_string();
-
-    loop {
-        if let Ok(d) = start.elapsed() {
-            if d > Duration::from_secs(120) {
-                break;
-            };
-        }
-        if let Some(mut controller) = build_controller() {
-            let yao = controller.leds_mut(0);
-            // let li = controller.leds_mut(1);
-
-            // Yao
-            let s = 3..=5;
-            let mut i = 1;
-            for (x, y) in hexagram.chars().zip(related.chars()) {
-                if x.eq(&y) {
-                    let mut b = 0;
-                    if x.eq(&'1') {
-                        b = 1;
-                    }
-
-                    if s.contains(&i) {
-                        colour = second_colour.clone();
-                    } else {
-                        colour = first_color.clone();
-                    }
-
-                    render(b, i, &mut controller, &colour);
-                } else {
-                    // render_changing(i, controller);
-
-                    // let position = LEDS_IN_LINE * (i - 1);
-                    // for num in position..position + LEDS_IN_LINE {
-                    //     // leds[num as usize] = [c, a, b, 0];
-                    //     yao[num as usize] = [0, 0, 0, 0];
-                    // }
-                }
-                i += 1;
-            }
-
-            // // Yao
-            // for num in 0..yao.len() {
-            //     yao[num as usize] = [0, 0, 0, 0];
-            // }
-            //
-            // // Li
-            // for num in 0..li.len() {
-            //     li[num as usize] = [0, 0, 0, 0];
-            // }
-
-            if let Err(e) = controller.render() {
-                println!("{:?}", e);
-            };
-        }
-    }
-}
+// pub fn display(hexagram: &String, related: &String) {
+//     let start = SystemTime::now();
+//     let first_color = get_trigram_colour(hexagram[0..3].to_string());
+//     let second_colour = get_trigram_colour(hexagram[3..6].to_string());
+//     let mut colour = "".to_string();
+//
+//     loop {
+//         if let Ok(d) = start.elapsed() {
+//             if d > Duration::from_secs(120) {
+//                 break;
+//             };
+//         }
+//         if let Some(mut controller) = build_controller() {
+//             let yao = controller.leds_mut(0);
+//             // let li = controller.leds_mut(1);
+//
+//             // Yao
+//             let s = 3..=5;
+//             let mut i = 1;
+//             for (x, y) in hexagram.chars().zip(related.chars()) {
+//                 if x.eq(&y) {
+//                     let mut b = 0;
+//                     if x.eq(&'1') {
+//                         b = 1;
+//                     }
+//
+//                     if s.contains(&i) {
+//                         colour = second_colour.clone();
+//                     } else {
+//                         colour = first_color.clone();
+//                     }
+//
+//                     render(b, i, &mut controller, &colour);
+//                 } else {
+//                     // render_changing(i, controller);
+//
+//                     // let position = LEDS_IN_LINE * (i - 1);
+//                     // for num in position..position + LEDS_IN_LINE {
+//                     //     // leds[num as usize] = [c, a, b, 0];
+//                     //     yao[num as usize] = [0, 0, 0, 0];
+//                     // }
+//                 }
+//                 i += 1;
+//             }
+//
+//             // // Yao
+//             // for num in 0..yao.len() {
+//             //     yao[num as usize] = [0, 0, 0, 0];
+//             // }
+//             //
+//             // // Li
+//             // for num in 0..li.len() {
+//             //     li[num as usize] = [0, 0, 0, 0];
+//             // }
+//
+//             if let Err(e) = controller.render() {
+//                 println!("{:?}", e);
+//             };
+//         }
+//     }
+// }
 
 pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3: i32) {
     match trigram.as_str() {
@@ -516,28 +534,6 @@ pub fn drop_pins() {
     pin_off(7);
 }
 
-pub fn drop_lines(controller: &mut Controller) {
-    println!("--------> drop lines");
-
-    // all leds to resting_colour
-    let (a, b, c) = parse_colour(&"rgb(2, 233, 211)".to_string());
-
-    let yao_leds = controller.leds_mut(0);
-    // for num in 0..yao_leds.len() - 1 {
-    for num in 0..yao_leds.len() {
-        yao_leds[num as usize] = [c, a, b, 0];
-    }
-    let li_leds = controller.leds_mut(1);
-    // for num in 0..li_leds.len() - 1 {
-    for num in 0..li_leds.len() {
-        li_leds[num as usize] = [c, a, b, 0];
-    }
-
-    if let Err(error) = controller.render() {
-        println!("{:?}", error);
-    };
-}
-
 pub fn get_related(h: &String, r: &String) -> String {
     let mut result = "".to_string();
     for (x, y) in h.chars().zip(r.chars()) {
@@ -555,112 +551,136 @@ pub fn get_related(h: &String, r: &String) -> String {
     result
 }
 
-pub fn get_trigram_colour(t: String) -> String {
-    match t.as_str() {
-        // Heaven
-        "111" => HEAVEN_COLOUR.to_string(),
-        // Cloud
-        "110" => CLOUD_COLOUR.to_string(),
-        // Sun
-        "101" => SUN_COLOUR.to_string(),
-        // Wind
-        "011" => WIND_COLOUR.to_string(),
-        // Thunder
-        "100" => THUNDER_COLOUR.to_string(),
-        // Water
-        "010" => WATER_COLOUR.to_string(),
-        // Mountain
-        "001" => MOUNTAIN_COLOUR.to_string(),
-        // Earth
-        "000" => EARTH_COLOUR.to_string(),
-        // Error
-        _ => "".to_string(),
-    }
-}
+// pub fn get_trigram_colour(t: String) -> String {
+//     match t.as_str() {
+//         // Heaven
+//         "111" => HEAVEN_COLOUR.to_string(),
+//         // Cloud
+//         "110" => CLOUD_COLOUR.to_string(),
+//         // Sun
+//         "101" => SUN_COLOUR.to_string(),
+//         // Wind
+//         "011" => WIND_COLOUR.to_string(),
+//         // Thunder
+//         "100" => THUNDER_COLOUR.to_string(),
+//         // Water
+//         "010" => WATER_COLOUR.to_string(),
+//         // Mountain
+//         "001" => MOUNTAIN_COLOUR.to_string(),
+//         // Earth
+//         "000" => EARTH_COLOUR.to_string(),
+//         // Error
+//         _ => "".to_string(),
+//     }
+// }
 
-pub fn display_yao(controller: &mut Controller, hexagram: &String, related: &String) {
-    let yao = controller.leds_mut(0);
-    let first_color = get_trigram_colour(hexagram[0..3].to_string());
-    let second_colour = get_trigram_colour(hexagram[3..6].to_string());
-    let mut colour = "".to_string();
-    let mut rng1 = rand::thread_rng();
-    let mut rng2 = rand::thread_rng();
-    let mut rng3 = rand::thread_rng();
-
-    let s = 3..=5;
-    let mut i = 1;
-    let mut j = 1;
-    for (x, y) in hexagram.chars().zip(related.chars()) {
-        match i {
-            1 => j = 6,
-            2 => j = 1,
-            3 => j = 2,
-            4 => j = 3,
-            5 => j = 4,
-            _ => j = 5,
-        };
-
-        let mut b = 0;
-        if x.eq(&'1') {
-            b = 1;
-        }
-
-        if x.eq(&y) {
-            if s.contains(&j) {
-                colour = second_colour.clone();
-            } else {
-                colour = first_color.clone();
-            }
-
-            let (a, b, c) = parse_colour(&colour);
-            let part = LEDS_IN_LINE / 3;
-            let position = LEDS_IN_LINE * (j - 1);
-            for num in position..position + LEDS_IN_LINE {
-                if b == 0 {
-                    if num > position + part && num < position + part * 2 {
-                        yao[num as usize] = [0, 0, 0, 0];
-                    } else {
-                        yao[num as usize] = [c, a, b, 0];
-                    }
-                } else {
-                    yao[num as usize] = [c, a, b, 0];
-                }
-            }
-        } else {
-            // changed line
-            let part = LEDS_IN_LINE / 3;
-            let position = LEDS_IN_LINE * (j - 1);
-            for num in position..position + LEDS_IN_LINE {
-                // let red_range = Uniform::from(54..255);
-                // let r = red_range.sample(&mut rng1);
-                //
-                // let green_range = Uniform::from(0..r / 4);
-                // let g = green_range.sample(&mut rng2);
-                //
-                // let blue_range = Uniform::from(0..r / 4);
-                // let b = blue_range.sample(&mut rng3);
-
-                if b == 0 {
-                    if num > position + part && num < position + part * 2 {
-                        yao[num as usize] = [0, 0, 0, 0];
-                    } else {
-                        // yao[num as usize] = [b, g, r, 0];
-                        yao[num as usize] = [255, 255, 255, 0];
-                    }
-                } else {
-                    // yao[num as usize] = [b, g, r, 0];
-                    yao[num as usize] = [255, 255, 255, 0];
-                }
-            }
-        }
-        i += 1;
-    }
-}
-
-pub fn display_li(controller: &mut Controller) {
-    let li = controller.leds_mut(1);
-    for num in 0..li.len() {
-        // li[num as usize] = [0, 0, 0, 0];
-        li[num as usize] = [255, 255, 255, 0];
-    }
-}
+// pub fn display_yao(controller: &mut Controller, hexagram: &String, related: &String) {
+//     let yao = controller.leds_mut(0);
+//     let first_color = get_trigram_colour(hexagram[0..3].to_string());
+//     let second_colour = get_trigram_colour(hexagram[3..6].to_string());
+//     let mut colour = "".to_string();
+//     let mut rng1 = rand::thread_rng();
+//     let mut rng2 = rand::thread_rng();
+//     let mut rng3 = rand::thread_rng();
+//
+//     let s = 3..=5;
+//     let mut i = 1;
+//     let mut j = 1;
+//     // for (x, y) in hexagram.chars().zip(related.chars()) {
+//     for x in hexagram.chars() {
+//         match i {
+//             1 => j = 6,
+//             2 => j = 1,
+//             3 => j = 2,
+//             4 => j = 3,
+//             5 => j = 4,
+//             _ => j = 5,
+//         };
+//
+//         let mut b = 0;
+//         if x.eq(&'1') {
+//             b = 1;
+//         } else {
+//             b = 0;
+//         }
+//
+//         if s.contains(&j) {
+//             colour = second_colour.clone();
+//         } else {
+//             colour = first_color.clone();
+//         }
+//         let (a, b, c) = parse_colour(&colour);
+//
+//         let part = LEDS_IN_LINE / 3;
+//         let position = LEDS_IN_LINE * (j - 1);
+//         for num in position..position + LEDS_IN_LINE {
+//             if b == 0 {
+//                 if num > position + part && num < position + part * 2 {
+//                     yao[num as usize] = [0, 0, 0, 0];
+//                 } else {
+//                     yao[num as usize] = [c, a, b, 0];
+//                 }
+//             } else {
+//                 yao[num as usize] = [c, a, b, 0];
+//             }
+//         }
+//
+//         // if x.eq(&y) {
+//         //     if s.contains(&j) {
+//         //         colour = second_colour.clone();
+//         //     } else {
+//         //         colour = first_color.clone();
+//         //     }
+//         //
+//         //     let (a, b, c) = parse_colour(&colour);
+//         //     let part = LEDS_IN_LINE / 3;
+//         //     let position = LEDS_IN_LINE * (j - 1);
+//         //     for num in position..position + LEDS_IN_LINE {
+//         //         if b == 0 {
+//         //             if num > position + part && num < position + part * 2 {
+//         //                 yao[num as usize] = [0, 0, 0, 0];
+//         //             } else {
+//         //                 yao[num as usize] = [c, a, b, 0];
+//         //             }
+//         //         } else {
+//         //             yao[num as usize] = [c, a, b, 0];
+//         //         }
+//         //     }
+//         // } else {
+//         //     // changed line
+//         //     // let part = LEDS_IN_LINE / 3;
+//         //     // let position = LEDS_IN_LINE * (j - 1);
+//         //     // for num in position..position + LEDS_IN_LINE {
+//         //     //     // let red_range = Uniform::from(54..255);
+//         //     //     // let r = red_range.sample(&mut rng1);
+//         //     //     //
+//         //     //     // let green_range = Uniform::from(0..r / 4);
+//         //     //     // let g = green_range.sample(&mut rng2);
+//         //     //     //
+//         //     //     // let blue_range = Uniform::from(0..r / 4);
+//         //     //     // let b = blue_range.sample(&mut rng3);
+//         //     //
+//         //     //     if b == 0 {
+//         //     //         if num > position + part && num < position + part * 2 {
+//         //     //             yao[num as usize] = [0, 0, 0, 0];
+//         //     //         } else {
+//         //     //             // yao[num as usize] = [b, g, r, 0];
+//         //     //             yao[num as usize] = [255, 255, 255, 0];
+//         //     //         }
+//         //     //     } else {
+//         //     //         // yao[num as usize] = [b, g, r, 0];
+//         //     //         yao[num as usize] = [255, 255, 255, 0];
+//         //     //     }
+//         //     // }
+//         // }
+//         i += 1;
+//     }
+// }
+//
+// pub fn display_li(controller: &mut Controller) {
+//     let li = controller.leds_mut(1);
+//     for num in 0..li.len() {
+//         // li[num as usize] = [0, 0, 0, 0];
+//         li[num as usize] = [255, 255, 255, 0];
+//     }
+// }
