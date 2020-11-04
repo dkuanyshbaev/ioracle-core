@@ -27,6 +27,7 @@ fn main() {
     loop {
         match ioracle {
             machine::IOracleWrapper::Resting(_) => {
+                // waiting for message
                 if let Ok(_) = listener.set_nonblocking(true) {
                     for stream in listener.incoming() {
                         // println!("new stream");
@@ -37,6 +38,15 @@ fn main() {
                                     // println!("new line");
                                     if let Ok(line) = line {
                                         if line == "read" {
+                                            // reset LEDs
+                                            println!("LED init");
+                                            if let Some(mut controller) =
+                                                wires::build_controller(50)
+                                            {
+                                                wires::render_resting(&mut controller);
+                                            };
+
+                                            // new readings
                                             ioracle = ioracle.step();
                                             break;
                                         }
@@ -45,9 +55,10 @@ fn main() {
                             }
                             Err(_) => {
                                 // println!("LED update");
-                                if let Some(mut controller) = wires::build_controller(100) {
-                                    wires::render_resting(&mut controller);
-                                };
+                                // thread::sleep(Duration::from_secs(1));
+                                // if let Some(mut controller) = wires::build_controller(50) {
+                                //     wires::render_resting(&mut controller);
+                                // };
                             }
                         }
                         break;
@@ -100,7 +111,16 @@ fn main() {
                 //         println!("{:?}", e);
                 //     };
                 // }
-                thread::sleep(Duration::from_secs(100));
+                thread::sleep(Duration::from_secs(20));
+                if let Some(mut controller) = wires::build_controller(255) {
+                    wires::display_rel(&mut controller, &v.hexagram, &v.related);
+                }
+                thread::sleep(Duration::from_secs(80));
+
+                println!("LED re-init");
+                if let Some(mut controller) = wires::build_controller(50) {
+                    wires::render_resting(&mut controller);
+                };
 
                 ioracle = ioracle.step();
             }

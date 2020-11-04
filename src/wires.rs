@@ -8,6 +8,7 @@ use std::{process, thread};
 const LEDS_IN_LINE: i32 = 144;
 
 const DEFAULT_COLOUR: &str = "rgb(51, 0, 180)";
+const LI_COLOUR: &str = "rgb(230, 4, 211)";
 
 const HEAVEN_COLOUR: &str = "rgb(224, 4, 235)";
 const CLOUD_COLOUR: &str = "rgb(255, 2, 14)";
@@ -139,37 +140,23 @@ pub fn render_resting(controller: &mut Controller) {
         yao[num as usize] = [0, 0, 0, 0];
     }
 
-    let li = controller.leds_mut(1);
-    let mut rng1 = rand::thread_rng();
-    let mut rng2 = rand::thread_rng();
-    let blue_range = Uniform::from(54..255);
-
-    // let mut k;
-    // for i in 0..li.len() {
-    //     k = i * 9;
-    //     // !!!???
-    //     if k > li.len() - 9 {
-    //         k = li.len() - 9;
-    //     }
-    //     for j in k..k + 9 {
-    //         let b = blue_range.sample(&mut rng1);
-    //         let green_range = Uniform::from(0..b / 4);
-    //         let g = green_range.sample(&mut rng2);
-    //         li[j as usize] = [b, g, 0, 0];
-    //     }
-    // }
-
-    for num in 0..li.len() {
-        let b = blue_range.sample(&mut rng1);
-        let green_range = Uniform::from(0..b / 4);
-        let g = green_range.sample(&mut rng2);
-        li[num as usize] = [b, g, 0, 0];
-    }
-
     // let li = controller.leds_mut(1);
+    // let mut rng1 = rand::thread_rng();
+    // let mut rng2 = rand::thread_rng();
+    // let blue_range = Uniform::from(54..255);
+    //
     // for num in 0..li.len() {
-    //     li[num as usize] = [255, 255, 255, 0];
+    //     let b = blue_range.sample(&mut rng1);
+    //     let green_range = Uniform::from(0..b / 4);
+    //     let g = green_range.sample(&mut rng2);
+    //     li[num as usize] = [b, g, 0, 0];
     // }
+
+    let (a, b, c) = parse_colour(&LI_COLOUR.to_string());
+    let li = controller.leds_mut(1);
+    for num in 0..li.len() {
+        li[num as usize] = [c, b, a, 0];
+    }
 
     if let Err(e) = controller.render() {
         println!("Resting error: {:?}", e);
@@ -229,6 +216,7 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("line3 = {}", line3);
     render(line3, 2, controller, &DEFAULT_COLOUR.to_string());
     render_li(controller);
+    thread::sleep(Duration::from_secs(2));
 
     let first = format!("{}{}{}", line1, line2, line3);
     react(controller, &first, 6, 1, 2);
@@ -247,6 +235,7 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let lr3 = read(1, m.clone(), b.clone(), t.clone());
     //------------------------------------------------------
     drop_pins();
+    thread::sleep(Duration::from_secs(3));
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
@@ -264,13 +253,14 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("line6 = {}", line6);
     render(line6, 5, controller, &DEFAULT_COLOUR.to_string());
     render_li(controller);
+    thread::sleep(Duration::from_secs(2));
 
     let second = format!("{}{}{}", line4, line5, line6);
     react(controller, &second, 3, 4, 5);
 
     // special Earth rules
     if second == "000" {
-        thread::sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(2));
         render_yin(3, controller, &DEFAULT_COLOUR.to_string());
         render_yin(4, controller, &DEFAULT_COLOUR.to_string());
         render_yin(5, controller, &DEFAULT_COLOUR.to_string());
@@ -589,20 +579,29 @@ pub fn play_sound(file_name: String) {
         cmd = "/ioracle/scripts/earth_mountain.sh";
     }
 
-    match process::Command::new(cmd).output() {
-        Ok(output) => println!("{:?}", output),
-        Err(error) => println!("{:?}", error),
-    }
+    // match process::Command::new(cmd).output() {
+    //     Ok(output) => println!("{:?}", output),
+    //     Err(error) => println!("{:?}", error),
+    // }
+
+    std::process::Command::new(cmd).spawn().expect("");
+    // aplay /ioracle/sounds/EarthMountain.wav -q &
+    // process::Command::new("aplay")
+    //     .arg(format!("/ioracle/sounds/{}", file_name))
+    //     .arg("-q")
+    //     .arg("&")
+    //     .spawn()
+    //     .expect("");
 }
 
 pub fn drop_pins() {
     println!("--------> drop pins");
 
     pin_off(5);
-    pin_off(8);
+    // pin_off(8);
     pin_off(20);
     pin_off(6);
-    pin_off(7);
+    // pin_off(7);
 }
 
 pub fn get_related(h: &String, r: &String) -> String {
@@ -622,28 +621,28 @@ pub fn get_related(h: &String, r: &String) -> String {
     result
 }
 
-// pub fn get_trigram_colour(t: String) -> String {
-//     match t.as_str() {
-//         // Heaven
-//         "111" => HEAVEN_COLOUR.to_string(),
-//         // Cloud
-//         "110" => CLOUD_COLOUR.to_string(),
-//         // Sun
-//         "101" => SUN_COLOUR.to_string(),
-//         // Wind
-//         "011" => WIND_COLOUR.to_string(),
-//         // Thunder
-//         "100" => THUNDER_COLOUR.to_string(),
-//         // Water
-//         "010" => WATER_COLOUR.to_string(),
-//         // Mountain
-//         "001" => MOUNTAIN_COLOUR.to_string(),
-//         // Earth
-//         "000" => EARTH_COLOUR.to_string(),
-//         // Error
-//         _ => "".to_string(),
-//     }
-// }
+pub fn get_trigram_colour(t: String) -> String {
+    match t.as_str() {
+        // Heaven
+        "111" => HEAVEN_COLOUR.to_string(),
+        // Cloud
+        "110" => CLOUD_COLOUR.to_string(),
+        // Sun
+        "101" => SUN_COLOUR.to_string(),
+        // Wind
+        "011" => WIND_COLOUR.to_string(),
+        // Thunder
+        "100" => THUNDER_COLOUR.to_string(),
+        // Water
+        "010" => WATER_COLOUR.to_string(),
+        // Mountain
+        "001" => MOUNTAIN_COLOUR.to_string(),
+        // Earth
+        "000" => EARTH_COLOUR.to_string(),
+        // Error
+        _ => "".to_string(),
+    }
+}
 
 // pub fn display_yao(controller: &mut Controller, hexagram: &String, related: &String) {
 //     let yao = controller.leds_mut(0);
@@ -755,3 +754,58 @@ pub fn get_related(h: &String, r: &String) -> String {
 //         li[num as usize] = [255, 255, 255, 0];
 //     }
 // }
+
+pub fn display_rel(controller: &mut Controller, hexagram: &String, related: &String) {
+    let yao = controller.leds_mut(0);
+    let first_color = get_trigram_colour(hexagram[0..3].to_string());
+    let second_colour = get_trigram_colour(hexagram[3..6].to_string());
+    let mut colour = "".to_string();
+
+    let s = 3..=5;
+    let mut i = 1;
+    let mut j = 1;
+    for x in related.chars() {
+        match i {
+            1 => j = 6,
+            2 => j = 1,
+            3 => j = 2,
+            4 => j = 3,
+            5 => j = 4,
+            _ => j = 5,
+        };
+
+        let mut b = 0;
+        if x.eq(&'1') {
+            b = 1;
+        } else {
+            b = 0;
+        }
+
+        if s.contains(&j) {
+            colour = second_colour.clone();
+        } else {
+            colour = first_color.clone();
+        }
+        let (a, b, c) = parse_colour(&colour);
+
+        match b {
+            1 => render_yang(j, controller, &colour),
+            _ => render_yin(j, controller, &colour),
+        }
+
+        // let part = LEDS_IN_LINE / 3;
+        // let position = LEDS_IN_LINE * (j - 1);
+        // for num in position..position + LEDS_IN_LINE {
+        //     if b == 0 {
+        //         if num > position + part && num < position + part * 2 {
+        //             yao[num as usize] = [0, 0, 0, 0];
+        //         } else {
+        //             yao[num as usize] = [c, a, b, 0];
+        //         }
+        //     } else {
+        //         yao[num as usize] = [c, a, b, 0];
+        //     }
+        // }
+        i += 1;
+    }
+}
