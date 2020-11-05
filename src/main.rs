@@ -111,11 +111,11 @@ fn main() {
                 //         println!("{:?}", e);
                 //     };
                 // }
-                thread::sleep(Duration::from_secs(20));
-                if let Some(mut controller) = wires::build_controller(255) {
-                    wires::display_rel(&mut controller, &v.hexagram, &v.related);
-                }
-                thread::sleep(Duration::from_secs(80));
+                // thread::sleep(Duration::from_secs(20));
+                // if let Some(mut controller) = wires::build_controller(255) {
+                //     wires::display_rel(&mut controller, &v.hexagram, &v.related);
+                // }
+                thread::sleep(Duration::from_secs(100));
 
                 println!("LED re-init");
                 if let Some(mut controller) = wires::build_controller(50) {

@@ -2,9 +2,12 @@ use rand::distributions::{Distribution, Uniform};
 use rppal::gpio::Gpio;
 use rs_ws281x::{ChannelBuilder, Controller, ControllerBuilder, StripType};
 use serialport::prelude::*;
+use std::fs::{File, OpenOptions};
+use std::io::{prelude::*, SeekFrom};
 use std::time::{Duration, SystemTime};
 use std::{process, thread};
 
+const PUMP_FILE: &str = "/tmp/pumps.usage";
 const LEDS_IN_LINE: i32 = 144;
 
 const DEFAULT_COLOUR: &str = "rgb(51, 0, 180)";
@@ -181,6 +184,17 @@ pub fn render_li(controller: &mut Controller) {
     }
 }
 
+pub fn drop_li(controller: &mut Controller) {
+    let li = controller.leds_mut(1);
+    for num in 0..li.len() {
+        li[num as usize] = [0, 0, 0, 0];
+    }
+
+    if let Err(e) = controller.render() {
+        println!("Li error: {:?}", e);
+    }
+}
+
 pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("New reading.");
     let yao = controller.leds_mut(0);
@@ -236,6 +250,7 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     //------------------------------------------------------
     drop_pins();
     thread::sleep(Duration::from_secs(3));
+    drop_li(controller);
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
@@ -272,6 +287,7 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let lr6 = read(1, m.clone(), b.clone(), t.clone());
     //------------------------------------------------------
     drop_pins();
+    drop_li(controller);
 
     let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
     let related_unchanged = format!("{}{}{}{}{}{}", lr1, lr2, lr3, lr4, lr5, lr6);
@@ -535,6 +551,10 @@ pub fn pin_on(pin: u8) {
                 pin.set_high();
             }
         }
+    }
+    if pin == 6 || pin == 7 || pin == 8 {
+        println!("--------> pump usage");
+        check_the_pumps();
     }
 }
 
@@ -808,4 +828,36 @@ pub fn display_rel(controller: &mut Controller, hexagram: &String, related: &Str
         // }
         i += 1;
     }
+}
+
+fn check_the_pumps() {
+    if let Ok(mut file) = OpenOptions::new().read(true).write(true).open(PUMP_FILE) {
+        let mut contents = String::new();
+        if let Ok(_) = file.read_to_string(&mut contents) {
+            if let Ok(num) = contents.parse::<i32>() {
+                let mut x = num + 1;
+                if x > 6 {
+                    send_mail();
+                    x = 0;
+                }
+
+                let xs = x.to_string();
+                if let Ok(_) = file.seek(SeekFrom::Start(0)) {
+                    if let Err(e) = file.write_all(&xs.as_bytes()) {
+                        println!("{:?}", e);
+                    };
+                };
+            }
+        };
+    } else {
+        if let Ok(mut file) = File::create(PUMP_FILE) {
+            if let Err(e) = file.write_all(b"1") {
+                println!("{:?}", e);
+            };
+        };
+    };
+}
+
+fn send_mail() {
+    println!("refil the pumps!");
 }
