@@ -185,9 +185,11 @@ pub fn render_li(controller: &mut Controller) {
 }
 
 pub fn drop_li(controller: &mut Controller) {
+    let (a, b, c) = parse_colour(&LI_COLOUR.to_string());
     let li = controller.leds_mut(1);
     for num in 0..li.len() {
-        li[num as usize] = [0, 0, 0, 0];
+        // li[num as usize] = [0, 0, 0, 0];
+        li[num as usize] = [c, b, a, 0];
     }
 
     if let Err(e) = controller.render() {
@@ -571,10 +573,12 @@ pub fn pin_off(pin: u8) {
 pub fn shell_fire() {
     println!("--------> shell fire");
 
-    match process::Command::new("/ioracle/scripts/fire.sh").output() {
-        Ok(output) => println!("{:?}", output),
-        Err(error) => println!("{:?}", error),
-    }
+    // if let Err(e) = process::Command::new("/ioracle/scripts/fire.sh").spawn() {
+    //     println!("{:?}", e);
+    // }
+    process::Command::new("/ioracle/scripts/fire.sh")
+        .output()
+        .expect("");
 }
 
 pub fn pin7_start() {
