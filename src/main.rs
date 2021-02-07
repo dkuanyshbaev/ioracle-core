@@ -7,8 +7,8 @@ use std::path::Path;
 use std::time::Duration;
 use std::{process, thread};
 
-const IORACLE_IN: &str = "/tmp/ioracle.in";
-const IORACLE_OUT: &str = "/tmp/ioracle.out";
+const IORACLE_IN: &str = "/tmp/ioracle.send";
+const IORACLE_OUT: &str = "/tmp/ioracle.return";
 
 fn main() {
     let socket = Path::new(IORACLE_IN);
@@ -35,7 +35,7 @@ fn main() {
                             Ok(stream) => {
                                 let stream_reader = BufReader::new(stream);
                                 for line in stream_reader.lines() {
-                                    // println!("new line");
+                                    println!("new line");
                                     if let Ok(line) = line {
                                         if line == "read" {
                                             // reset LEDs
@@ -46,6 +46,8 @@ fn main() {
                                                 wires::render_resting(&mut controller);
                                             };
 
+                                            println!("----------------- have a message");
+                                            thread::sleep(Duration::from_secs(5));
                                             // new readings
                                             ioracle = ioracle.step();
                                             break;
@@ -72,6 +74,9 @@ fn main() {
                     v.related = r;
                 }
 
+                println!("----------------- reading stage here");
+                thread::sleep(Duration::from_secs(5));
+
                 ioracle = ioracle.step();
             }
             machine::IOracleWrapper::Displaying(ref v) => {
@@ -80,10 +85,12 @@ fn main() {
 
                 match UnixStream::connect(IORACLE_OUT) {
                     Ok(mut stream) => {
+                        println!("----------------- trying to write back..");
                         let result = format!("{}|{}", &v.hexagram, &v.related).into_bytes();
                         if let Err(error) = stream.write_all(&result) {
                             println!("Can't write to stream: {:?}", error);
                         };
+                        println!("----------------- after write");
                     }
                     Err(error) => println!("Can't connect to output socket: {:?}", error),
                 };
@@ -115,7 +122,9 @@ fn main() {
                 // if let Some(mut controller) = wires::build_controller(255) {
                 //     wires::display_rel(&mut controller, &v.hexagram, &v.related);
                 // }
-                thread::sleep(Duration::from_secs(100));
+                // thread::sleep(Duration::from_secs(100));
+                println!("----------------------- display now");
+                thread::sleep(Duration::from_secs(5));
 
                 println!("LED re-init");
                 if let Some(mut controller) = wires::build_controller(50) {
