@@ -25,13 +25,18 @@ fn main() {
         process::exit(1);
     });
 
-    // create machine @ resting state
+    // create machine at resting state
     let mut ioracle = machine::IOracleWrapper::Resting(machine::IOracle::new());
 
     // listen and react
     loop {
         match ioracle {
             machine::IOracleWrapper::Resting(_) => {
+                // reset LEDs ???
+                if let Some(mut controller) = wires::build_controller(50) {
+                    wires::render_resting(&mut controller);
+                };
+                // listen for incomings
                 if let Ok(_) = listener.set_nonblocking(true) {
                     // waiting for message
                     for stream in listener.incoming() {
@@ -41,13 +46,12 @@ fn main() {
                                 if let Ok(line) = line {
                                     if line == "read" {
                                         // reset LEDs ???
-                                        if let Some(mut controller) = wires::build_controller(50) {
-                                            wires::render_resting(&mut controller);
-                                        };
+                                        // if let Some(mut controller) = wires::build_controller(50) {
+                                        //     wires::render_resting(&mut controller);
+                                        // };
 
-                                        // wating for user ???
-                                        thread::sleep(Duration::from_secs(5));
-
+                                        // wating for user
+                                        thread::sleep(Duration::from_secs(4));
                                         ioracle = ioracle.step();
                                         break;
                                     }
@@ -77,10 +81,12 @@ fn main() {
                     Err(error) => println!("Can't connect to RETURN socket: {:?}", error),
                 };
 
-                thread::sleep(Duration::from_secs(5)); //need 100
-                if let Some(mut controller) = wires::build_controller(50) {
-                    wires::render_resting(&mut controller);
-                };
+                // show result for a while
+                // need 100s
+                thread::sleep(Duration::from_secs(5));
+                // if let Some(mut controller) = wires::build_controller(50) {
+                //     wires::render_resting(&mut controller);
+                // };
                 ioracle = ioracle.step();
             }
         };
