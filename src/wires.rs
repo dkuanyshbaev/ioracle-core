@@ -125,7 +125,7 @@ pub fn render_li(controller: &mut Controller) {
     }
 }
 
-pub fn drop_li(controller: &mut Controller) {
+pub fn drop_li_to_default(controller: &mut Controller) {
     let (a, b, c) = parse_colour(&LI_COLOUR.to_string());
     let li = controller.leds_mut(1);
     for num in 0..li.len() {
@@ -157,20 +157,19 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let line1 = read(2, m.clone(), b.clone(), t.clone());
     println!("line1 = {}", line1);
     render(line1, 6, controller, &DEFAULT_COLOUR.to_string());
-    // ????
-    render_li(controller);
+    // render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line2 = read(2, m.clone(), b.clone(), t.clone());
     println!("line2 = {}", line2);
     render(line2, 1, controller, &DEFAULT_COLOUR.to_string());
-    render_li(controller);
+    // render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line3 = read(2, m.clone(), b.clone(), t.clone());
     println!("line3 = {}", line3);
     render(line3, 2, controller, &DEFAULT_COLOUR.to_string());
-    render_li(controller);
+    // render_li(controller);
     thread::sleep(Duration::from_secs(2));
 
     let first = format!("{}{}{}", line1, line2, line3);
@@ -184,31 +183,31 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
         render_yin(2, controller, &DEFAULT_COLOUR.to_string());
     }
 
-    // get related lines -----------------------------------
+    // get related lines
     let lr1 = read(1, m.clone(), b.clone(), t.clone());
     let lr2 = read(1, m.clone(), b.clone(), t.clone());
     let lr3 = read(1, m.clone(), b.clone(), t.clone());
-    //------------------------------------------------------
+
     drop_pins();
     thread::sleep(Duration::from_secs(3));
-    drop_li(controller);
+    drop_li_to_default(controller);
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
     render(line4, 3, controller, &DEFAULT_COLOUR.to_string());
-    render_li(controller);
+    // render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line5 = read(2, m.clone(), b.clone(), t.clone());
     println!("line5 = {}", line5);
     render(line5, 4, controller, &DEFAULT_COLOUR.to_string());
-    render_li(controller);
+    // render_li(controller);
     thread::sleep(Duration::from_secs(3));
 
     let line6 = read(2, m.clone(), b.clone(), t.clone());
     println!("line6 = {}", line6);
     render(line6, 5, controller, &DEFAULT_COLOUR.to_string());
-    render_li(controller);
+    // render_li(controller);
     thread::sleep(Duration::from_secs(2));
 
     let second = format!("{}{}{}", line4, line5, line6);
@@ -222,13 +221,13 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
         render_yin(5, controller, &DEFAULT_COLOUR.to_string());
     }
 
-    // get related lines -----------------------------------
+    // get related lines
     let lr4 = read(1, m.clone(), b.clone(), t.clone());
     let lr5 = read(1, m.clone(), b.clone(), t.clone());
     let lr6 = read(1, m.clone(), b.clone(), t.clone());
-    //------------------------------------------------------
+
     drop_pins();
-    drop_li(controller);
+    drop_li_to_default(controller);
 
     let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
     let related_original = format!("{}{}{}{}{}{}", lr1, lr2, lr3, lr4, lr5, lr6);
@@ -437,21 +436,13 @@ pub fn pin_on(pin: u8) {
 
 pub fn pin_off(pin: u8) {
     println!("--------> pin {}: off", pin);
+
     if let Ok(gpio) = Gpio::new() {
         if let Ok(pin) = gpio.get(pin) {
             let mut pin = pin.into_output();
             pin.set_low();
         }
     }
-}
-
-pub fn shell_fire() {
-    // if let Err(e) = process::Command::new("/ioracle/scripts/fire.sh").spawn() {
-    //     println!("{:?}", e);
-    // }
-    process::Command::new("/ioracle/scripts/fire.sh")
-        .output()
-        .expect("");
 }
 
 pub fn pin7_start() {
@@ -464,6 +455,15 @@ pub fn pin8_start() {
     if let Err(e) = std::process::Command::new("/ioracle/scripts/pin8.sh").output() {
         println!("{:?}", e);
     }
+}
+
+pub fn shell_fire() {
+    // if let Err(e) = process::Command::new("/ioracle/scripts/fire.sh").spawn() {
+    //     println!("{:?}", e);
+    // }
+    process::Command::new("/ioracle/scripts/fire.sh")
+        .output()
+        .expect("");
 }
 
 pub fn play_sound(file_name: String) {
@@ -505,6 +505,29 @@ pub fn get_related(h: &String, r: &String) -> String {
     result
 }
 
+fn parse_colour(colour: &String) -> (u8, u8, u8) {
+    let mut str_buff = colour.clone();
+    let mut rgb = (255, 255, 255);
+
+    // colour string format:  "rgb(108, 73, 211)"
+    let mut str_buff: String = str_buff.drain(4..).collect();
+    str_buff.pop();
+    let str_parts = str_buff.split(", ");
+    let parts: Vec<&str> = str_parts.collect();
+
+    if let Ok(part) = parts[0].parse::<u8>() {
+        rgb.0 = part;
+    }
+    if let Ok(part) = parts[1].parse::<u8>() {
+        rgb.1 = part;
+    }
+    if let Ok(part) = parts[2].parse::<u8>() {
+        rgb.2 = part;
+    }
+
+    rgb
+}
+
 fn check_the_pumps() {
     if let Ok(mut file) = OpenOptions::new().read(true).write(true).open(PUMP_FILE) {
         let mut contents = String::new();
@@ -535,27 +558,4 @@ fn check_the_pumps() {
 
 fn send_mail() {
     println!("refil the pumps!");
-}
-
-fn parse_colour(colour: &String) -> (u8, u8, u8) {
-    let mut str_buff = colour.clone();
-    let mut rgb = (255, 255, 255);
-
-    // colour string format:  "rgb(108, 73, 211)"
-    let mut str_buff: String = str_buff.drain(4..).collect();
-    str_buff.pop();
-    let str_parts = str_buff.split(", ");
-    let parts: Vec<&str> = str_parts.collect();
-
-    if let Ok(part) = parts[0].parse::<u8>() {
-        rgb.0 = part;
-    }
-    if let Ok(part) = parts[1].parse::<u8>() {
-        rgb.1 = part;
-    }
-    if let Ok(part) = parts[2].parse::<u8>() {
-        rgb.2 = part;
-    }
-
-    rgb
 }
