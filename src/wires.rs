@@ -199,6 +199,7 @@ pub fn drop_li(controller: &mut Controller) {
 
 pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("New reading.");
+
     let yao = controller.leds_mut(0);
 
     for num in 0..LEDS_IN_LINE * 6 {
