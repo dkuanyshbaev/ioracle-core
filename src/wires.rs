@@ -366,7 +366,7 @@ pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3
         }
         // Thunder
         "100" => {
-            play_sound("Thunder.wav".to_string());
+            play_sound("thunder.wav".to_string());
             render_yang(l1, controller, &THUNDER_COLOUR.to_string());
             render_yin(l2, controller, &THUNDER_COLOUR.to_string());
             render_yin(l3, controller, &THUNDER_COLOUR.to_string());
@@ -381,14 +381,14 @@ pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3
         // Mountain
         "001" => {
             pin_on(7);
-            play_sound("EarthMountain.wav".to_string());
+            play_sound("mountain.wav".to_string());
             render_yin(l1, controller, &MOUNTAIN_COLOUR.to_string());
             render_yin(l2, controller, &MOUNTAIN_COLOUR.to_string());
             render_yang(l3, controller, &MOUNTAIN_COLOUR.to_string());
         }
         // Earth
         "000" => {
-            play_sound("EarthMountain.wav".to_string());
+            play_sound("mountain.wav".to_string());
             render_yin(l1, controller, &EARTH_COLOUR.to_string());
             render_yin(l2, controller, &EARTH_COLOUR.to_string());
             render_yin(l3, controller, &EARTH_COLOUR.to_string());
@@ -403,24 +403,24 @@ pub fn pin_on(pin: u8) {
 
     if pin == 8 {
         pin8_start();
-    // if let Ok(gpio) = Gpio::new() {
-    //     if let Ok(pin8) = gpio.get(8) {
-    //         let mut pin8 = pin8.into_output();
-    //         pin8.set_high();
-    //         thread::sleep(Duration::from_secs(6));
-    //         pin8.set_low();
-    //     }
-    // }
+        // if let Ok(gpio) = Gpio::new() {
+        //     if let Ok(pin8) = gpio.get(8) {
+        //         let mut pin8 = pin8.into_output();
+        //         pin8.set_high();
+        //         thread::sleep(Duration::from_secs(6));
+        //         pin8.set_low();
+        //     }
+        // }
     } else if pin == 7 {
         pin7_start();
-    // if let Ok(gpio) = Gpio::new() {
-    //     if let Ok(pin7) = gpio.get(7) {
-    //         let mut pin7 = pin7.into_output();
-    //         pin7.set_high();
-    //         thread::sleep(Duration::from_secs(4));
-    //         pin7.set_low();
-    //     }
-    // }
+        // if let Ok(gpio) = Gpio::new() {
+        //     if let Ok(pin7) = gpio.get(7) {
+        //         let mut pin7 = pin7.into_output();
+        //         pin7.set_high();
+        //         thread::sleep(Duration::from_secs(4));
+        //         pin7.set_low();
+        //     }
+        // }
     } else {
         if let Ok(gpio) = Gpio::new() {
             if let Ok(pin) = gpio.get(pin) {
@@ -446,36 +446,49 @@ pub fn pin_off(pin: u8) {
 }
 
 pub fn pin7_start() {
-    if let Err(e) = std::process::Command::new("/ioracle/scripts/pin7.sh").output() {
-        println!("{:?}", e);
+    println!("--------> pin7");
+
+    if let Err(e) = process::Command::new("/ioracle/scripts/pin7.sh").output() {
+        println!("pin7 error: {:?}", e);
     }
 }
 
 pub fn pin8_start() {
-    if let Err(e) = std::process::Command::new("/ioracle/scripts/pin8.sh").output() {
-        println!("{:?}", e);
+    println!("--------> pin8");
+
+    if let Err(e) = process::Command::new("/ioracle/scripts/pin8.sh").output() {
+        println!("pin8 error: {:?}", e);
     }
 }
 
 pub fn shell_fire() {
+    println!("--------> fire");
+
     // if let Err(e) = process::Command::new("/ioracle/scripts/fire.sh").spawn() {
     //     println!("{:?}", e);
     // }
-    process::Command::new("/ioracle/scripts/fire.sh")
-        .output()
-        .expect("");
+    if let Err(e) = process::Command::new("/ioracle/scripts/fire.sh").output() {
+        println!("fire error: {:?}", e);
+    }
+    // process::Command::new("/ioracle/scripts/fire.sh")
+    //     .output()
+    //     .expect("");
 }
 
 pub fn play_sound(file_name: String) {
-    println!("--------> play: {}", file_name);
+    println!("--------> sound");
 
-    // let cmd;
-    // if file_name == "Thunder.wav" {
-    //     cmd = "/ioracle/scripts/thunder_sound.sh";
-    // } else {
-    //     cmd = "/ioracle/scripts/earth_mountain.sh";
-    // }
+    let cmd;
+    if file_name == "thunder.wav" {
+        cmd = "/ioracle/scripts/thunder.sh";
+    } else {
+        cmd = "/ioracle/scripts/mountain.sh";
+    }
     // process::Command::new(cmd).spawn().expect("");
+
+    if let Err(e) = process::Command::new(cmd).output() {
+        println!("sound error: {:?}", e);
+    }
 }
 
 pub fn drop_pins() {
