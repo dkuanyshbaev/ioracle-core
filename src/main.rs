@@ -33,9 +33,9 @@ fn main() {
         match ioracle {
             machine::IOracleWrapper::Resting(_) => {
                 // reset LEDs ???
-                if let Some(mut controller) = wires::build_controller(50) {
-                    wires::render_resting(&mut controller);
-                };
+                // if let Some(mut controller) = wires::build_controller(50) {
+                //     wires::render_resting(&mut controller);
+                // };
                 // listen for incomings
                 if let Ok(_) = listener.set_nonblocking(true) {
                     // waiting for message
@@ -63,11 +63,12 @@ fn main() {
                 }
             }
             machine::IOracleWrapper::Reading(ref mut v) => {
-                if let Some(mut controller) = wires::build_controller(255) {
-                    let (hexagram, related) = wires::reading(&mut controller);
-                    v.hexagram = hexagram;
-                    v.related = related;
-                }
+                // if let Some(mut controller) = wires::build_controller(255) {
+                //     let (hexagram, related) = wires::reading(&mut controller);
+                //     v.hexagram = hexagram;
+                //     v.related = related;
+                // }
+                let (hexagram, related) = wires::reading_no_led();
                 ioracle = ioracle.step();
             }
             machine::IOracleWrapper::Displaying(ref v) => {

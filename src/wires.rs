@@ -21,6 +21,7 @@ const WATER_COLOUR: &str = "rgb(38, 2, 255)";
 const MOUNTAIN_COLOUR: &str = "rgb(14, 255, 232)";
 const EARTH_COLOUR: &str = "rgb(0, 0, 0)";
 
+// LEDs controller
 pub fn build_controller(brightness: u8) -> Option<Controller> {
     match ControllerBuilder::new()
         .freq(800_000)
@@ -50,6 +51,7 @@ pub fn build_controller(brightness: u8) -> Option<Controller> {
     }
 }
 
+// render the line
 pub fn render(l: u8, line_num: i32, controller: &mut Controller, colour: &String) {
     match l {
         1 => render_yang(line_num, controller, colour),
@@ -90,6 +92,7 @@ pub fn render_yang(line_num: i32, controller: &mut Controller, colour: &String) 
     };
 }
 
+// render resting state for the lines
 pub fn render_resting(controller: &mut Controller) {
     let yao = controller.leds_mut(0);
     for num in 0..yao.len() {
@@ -137,6 +140,113 @@ pub fn drop_li_to_default(controller: &mut Controller) {
     }
 }
 
+pub fn reading_no_led() -> (String, String) {
+    println!("New reading... No leds");
+
+    // let yao = controller.leds_mut(0);
+    // for num in 0..LEDS_IN_LINE * 6 {
+    //     yao[num as usize] = [0, 0, 0, 0];
+    // }
+    // if let Err(e) = controller.render() {
+    //     println!("Yao error while reading: {:?}", e);
+    // };
+
+    //---------------------------------------------------
+    let m = "1".to_string();
+    let b = "500".to_string();
+    let t = "10".to_string();
+    //---------------------------------------------------
+
+    let line1 = read(2, m.clone(), b.clone(), t.clone());
+    println!("line1 = {}", line1);
+    // render(line1, 6, controller, &DEFAULT_COLOUR.to_string());
+    // render_li(controller);
+    thread::sleep(Duration::from_secs(3));
+
+    let line2 = read(2, m.clone(), b.clone(), t.clone());
+    println!("line2 = {}", line2);
+    // render(line2, 1, controller, &DEFAULT_COLOUR.to_string());
+    // render_li(controller);
+    thread::sleep(Duration::from_secs(3));
+
+    let line3 = read(2, m.clone(), b.clone(), t.clone());
+    println!("line3 = {}", line3);
+    // render(line3, 2, controller, &DEFAULT_COLOUR.to_string());
+    // render_li(controller);
+    thread::sleep(Duration::from_secs(2));
+
+    let first = format!("{}{}{}", line1, line2, line3);
+    react_no_leds(&first, 6, 1, 2);
+
+    // special Earth rules
+    // if first == "000" {
+    //     thread::sleep(Duration::from_secs(2));
+    //     render_yin(6, controller, &DEFAULT_COLOUR.to_string());
+    //     render_yin(1, controller, &DEFAULT_COLOUR.to_string());
+    //     render_yin(2, controller, &DEFAULT_COLOUR.to_string());
+    // }
+
+    // get related lines
+    let lr1 = read(1, m.clone(), b.clone(), t.clone());
+    let lr2 = read(1, m.clone(), b.clone(), t.clone());
+    let lr3 = read(1, m.clone(), b.clone(), t.clone());
+
+    drop_pins();
+    thread::sleep(Duration::from_secs(3));
+    //drop_li_to_default(controller);
+
+    let line4 = read(2, m.clone(), b.clone(), t.clone());
+    println!("line4 = {}", line4);
+    // render(line4, 3, controller, &DEFAULT_COLOUR.to_string());
+    // render_li(controller);
+    thread::sleep(Duration::from_secs(3));
+
+    let line5 = read(2, m.clone(), b.clone(), t.clone());
+    println!("line5 = {}", line5);
+    // render(line5, 4, controller, &DEFAULT_COLOUR.to_string());
+    // render_li(controller);
+    thread::sleep(Duration::from_secs(3));
+
+    let line6 = read(2, m.clone(), b.clone(), t.clone());
+    println!("line6 = {}", line6);
+    // render(line6, 5, controller, &DEFAULT_COLOUR.to_string());
+    // render_li(controller);
+    thread::sleep(Duration::from_secs(2));
+
+    let second = format!("{}{}{}", line4, line5, line6);
+    react_no_leds(&second, 3, 4, 5);
+
+    // special Earth rules
+    // if second == "000" {
+    //     thread::sleep(Duration::from_secs(2));
+    //     render_yin(3, controller, &DEFAULT_COLOUR.to_string());
+    //     render_yin(4, controller, &DEFAULT_COLOUR.to_string());
+    //     render_yin(5, controller, &DEFAULT_COLOUR.to_string());
+    // }
+
+    // get related lines
+    let lr4 = read(1, m.clone(), b.clone(), t.clone());
+    let lr5 = read(1, m.clone(), b.clone(), t.clone());
+    let lr6 = read(1, m.clone(), b.clone(), t.clone());
+
+    drop_pins();
+    //drop_li_to_default(controller);
+
+    let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
+    let related_original = format!("{}{}{}{}{}{}", lr1, lr2, lr3, lr4, lr5, lr6);
+    let related = get_related(&hexagram, &related_original);
+
+    (hexagram, related)
+}
+
+// this is the main reading function
+// first we read 3 lines with bias, threshold, multy parameters
+// then we react depending on a first trigram
+// then we read 3 related lines with a small time window
+// then we read next 3 lines
+// then we react depending on a second trigram
+// then we read 3 related lines with a small time window
+// from all this data we can build the hexagram and the related hexagram
 pub fn reading(controller: &mut Controller) -> (String, String) {
     println!("New reading...");
 
@@ -190,7 +300,7 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
 
     drop_pins();
     thread::sleep(Duration::from_secs(3));
-    drop_li_to_default(controller);
+    //drop_li_to_default(controller);
 
     let line4 = read(2, m.clone(), b.clone(), t.clone());
     println!("line4 = {}", line4);
@@ -227,7 +337,7 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     let lr6 = read(1, m.clone(), b.clone(), t.clone());
 
     drop_pins();
-    drop_li_to_default(controller);
+    //drop_li_to_default(controller);
 
     let hexagram = format!("{}{}{}{}{}{}", line1, line2, line3, line4, line5, line6);
     let related_original = format!("{}{}{}{}{}{}", lr1, lr2, lr3, lr4, lr5, lr6);
@@ -236,6 +346,8 @@ pub fn reading(controller: &mut Controller) -> (String, String) {
     (hexagram, related)
 }
 
+// read pip data from the serial port
+// install arduino ide + teense support to read from serial port on rpi
 pub fn read_the_pip(delta: u64) -> Vec<i32> {
     let s = SerialPortSettings {
         baud_rate: 9600,
@@ -285,6 +397,7 @@ pub fn get_val(buf: &[u8]) -> i32 {
     output
 }
 
+// read the pip data with timer and parameters
 pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
     let _m: f32 = m.parse().unwrap_or_else(|_| 1.0);
     let b: f32 = b.parse().unwrap_or_else(|_| 0.0);
@@ -334,6 +447,71 @@ pub fn read(delta: u64, m: String, b: String, t: String) -> u8 {
     }
 }
 
+pub fn react_no_leds(trigram: &String, l1: i32, l2: i32, l3: i32) {
+    match trigram.as_str() {
+        // Heaven
+        "111" => {
+            pin_on(5);
+            // render_yang(l1, controller, &HEAVEN_COLOUR.to_string());
+            // render_yang(l2, controller, &HEAVEN_COLOUR.to_string());
+            // render_yang(l3, controller, &HEAVEN_COLOUR.to_string());
+        }
+        // Cloud
+        "110" => {
+            pin_on(8);
+            // render_yang(l1, controller, &CLOUD_COLOUR.to_string());
+            // render_yang(l2, controller, &CLOUD_COLOUR.to_string());
+            // render_yin(l3, controller, &CLOUD_COLOUR.to_string());
+        }
+        // Sun
+        "101" => {
+            shell_fire();
+            // render_yang(l1, controller, &SUN_COLOUR.to_string());
+            // render_yin(l2, controller, &SUN_COLOUR.to_string());
+            // render_yang(l3, controller, &SUN_COLOUR.to_string());
+        }
+        // Wind
+        "011" => {
+            pin_on(20);
+            // render_yin(l1, controller, &WIND_COLOUR.to_string());
+            // render_yang(l2, controller, &WIND_COLOUR.to_string());
+            // render_yang(l3, controller, &WIND_COLOUR.to_string());
+        }
+        // Thunder
+        "100" => {
+            play_sound("thunder.wav".to_string());
+            // render_yang(l1, controller, &THUNDER_COLOUR.to_string());
+            // render_yin(l2, controller, &THUNDER_COLOUR.to_string());
+            // render_yin(l3, controller, &THUNDER_COLOUR.to_string());
+        }
+        // Water
+        "010" => {
+            pin_on(6);
+            // render_yin(l1, controller, &WATER_COLOUR.to_string());
+            // render_yang(l2, controller, &WATER_COLOUR.to_string());
+            // render_yin(l3, controller, &WATER_COLOUR.to_string());
+        }
+        // Mountain
+        "001" => {
+            pin_on(7);
+            play_sound("mountain.wav".to_string());
+            // render_yin(l1, controller, &MOUNTAIN_COLOUR.to_string());
+            // render_yin(l2, controller, &MOUNTAIN_COLOUR.to_string());
+            // render_yang(l3, controller, &MOUNTAIN_COLOUR.to_string());
+        }
+        // Earth
+        "000" => {
+            play_sound("mountain.wav".to_string());
+            // render_yin(l1, controller, &EARTH_COLOUR.to_string());
+            // render_yin(l2, controller, &EARTH_COLOUR.to_string());
+            // render_yin(l3, controller, &EARTH_COLOUR.to_string());
+        }
+        // Error
+        _ => {}
+    }
+}
+
+// here we react on tirgram with the hardware
 pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3: i32) {
     match trigram.as_str() {
         // Heaven
@@ -398,6 +576,7 @@ pub fn react(controller: &mut Controller, trigram: &String, l1: i32, l2: i32, l3
     }
 }
 
+// turn the pins on and off on rpi model 4
 pub fn pin_on(pin: u8) {
     println!("--------> pin {}: on", pin);
 
@@ -461,6 +640,7 @@ pub fn pin8_start() {
     }
 }
 
+// experiments on fire launch
 pub fn shell_fire() {
     println!("--------> fire");
 
@@ -475,6 +655,7 @@ pub fn shell_fire() {
     //     .expect("");
 }
 
+// experiments on sounds
 pub fn play_sound(file_name: String) {
     println!("--------> sound");
 
@@ -541,6 +722,7 @@ fn parse_colour(colour: &String) -> (u8, u8, u8) {
     rgb
 }
 
+// check the pumps levels
 fn check_the_pumps() {
     if let Ok(mut file) = OpenOptions::new().read(true).write(true).open(PUMP_FILE) {
         let mut contents = String::new();
